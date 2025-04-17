@@ -1,28 +1,32 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>My App Collection</title>
-  <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Home Page</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
 
+  <!-- Landing Section -->
   <div id="landing">
-    <h1>Welcome to the Eviction Grounds Quiz</h1>
-    <button onclick="startQuiz()">Eviction Quiz1</button>
+    <h1>Home Page</h1>
+    <button onclick="startQuiz()">Quiz 1: Eviction 1 to 8</button>
   </div>
 
-  <div id="quiz-container">
+  <!-- Quiz Section -->
+  <div id="quiz-container" style="display: none;">
     <div id="question" class="question"></div>
     <div class="choices" id="choices"></div>
     <div id="feedback" class="feedback"></div>
     <button class="next-btn" id="nextBtn" onclick="nextQuestion()" style="display: none;">Next</button>
   </div>
 
+  <!-- Results Section -->
   <div id="result-screen" class="results" style="display: none;">
     <h2 id="scoreText"></h2>
     <button onclick="startQuiz()">Restart Quiz</button>
-    <button onclick="goHome()">Back to Landing Page</button>
+    <button onclick="goHome()">Back to Home Page</button>
   </div>
 
   <script src="script.js"></script>
