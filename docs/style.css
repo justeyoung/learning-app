@@ -15,7 +15,7 @@ body {
   align-items: center;
 }
 
-/* Shared layout containers */
+/* Layout blocks */
 #landing,
 #quiz-container,
 #result-screen {
@@ -29,7 +29,7 @@ body {
   justify-content: center;
 }
 
-/* Question styling */
+/* Headings and questions */
 h1,
 h2 {
   text-align: center;
@@ -43,7 +43,7 @@ h2 {
   width: 100%;
 }
 
-/* Answer grid */
+/* Answer grid layout */
 .choices {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -52,7 +52,7 @@ h2 {
   max-width: 600px;
 }
 
-/* Button styling */
+/* Buttons */
 button {
   padding: 1.6em;
   font-size: 1.2rem;
@@ -69,6 +69,7 @@ button:hover {
   background-color: #005fa3;
 }
 
+/* Feedback and results */
 .feedback {
   font-size: 1.1rem;
   color: #444;
@@ -85,7 +86,7 @@ button:hover {
   text-align: center;
 }
 
-/* Mobile-first adjustments */
+/* Mobile responsiveness */
 @media (max-width: 600px) {
   .question {
     font-size: 1.3rem;
