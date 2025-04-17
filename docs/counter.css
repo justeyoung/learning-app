@@ -15,10 +15,30 @@ body {
   padding: 2em;
   border-radius: 20px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  width: 90%;
+  max-width: 400px;
 }
 
 h1 {
   margin-bottom: 1em;
+}
+
+.reset-btn {
+  background-color: #ff5555;
+  color: white;
+  border: none;
+  border-radius: 12px;
+  padding: 0.6em 1em;
+  font-size: 1rem;
+  cursor: pointer;
+  margin-bottom: 1em;
+  transition: background-color 0.2s;
+  width: 100%;
+  max-width: 300px;
+}
+
+.reset-btn:hover {
+  background-color: #cc0000;
 }
 
 .count-display {
