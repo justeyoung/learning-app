@@ -1,12 +1,13 @@
 * {
   box-sizing: border-box;
+  margin: 0;
+  padding: 0;
 }
 
 body {
-  margin: 0;
-  padding: 0;
   font-family: sans-serif;
-  background-color: #fff;
+  background-color: #ffffff;
+  color: #111;
   display: flex;
   flex-direction: column;
   min-height: 100vh;
@@ -14,36 +15,43 @@ body {
   align-items: center;
 }
 
-#landing, #quiz-container, #result-screen {
+/* Common layout blocks */
+#landing,
+#quiz-container,
+#result-screen {
   width: 100%;
-  max-width: 600px;
+  max-width: 700px;
   padding: 2em;
+  flex-grow: 1;
   display: flex;
   flex-direction: column;
-  justify-content: center;
   align-items: center;
-  flex-grow: 1;
 }
 
-h1, h2 {
+/* Quiz card styling */
+#quiz-container {
+  background: #f9f9f9;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  padding-top: 5vh;
+  padding-bottom: 5vh;
+  justify-content: center;
+}
+
+h1,
+h2 {
   text-align: center;
-  margin-bottom: 1em;
+  margin-bottom: 1.5em;
 }
 
 .question {
-  font-size: 1.3rem;
+  font-size: 1.5rem;
   text-align: center;
   margin-bottom: 1.5em;
   width: 100%;
 }
 
-.choices {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1em;
-  width: 100%;
-}
-
+/* Button styling */
 button {
   padding: 1.2em 1em;
   font-size: 1rem;
@@ -60,15 +68,24 @@ button:hover {
   background-color: #005fa3;
 }
 
+.choices {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1em;
+  width: 100%;
+  margin-bottom: 1.5em;
+}
+
+/* Feedback and Next */
 .feedback {
-  margin-top: 1.5em;
   font-size: 1rem;
   color: #444;
   text-align: center;
+  margin-top: 1em;
 }
 
 .next-btn {
-  margin-top: 1.2em;
+  margin-top: 1em;
   background-color: #444;
 }
 
@@ -76,10 +93,10 @@ button:hover {
   text-align: center;
 }
 
-/* Mobile adjustments */
+/* Mobile styles */
 @media (max-width: 500px) {
   .question {
-    font-size: 1.1rem;
+    font-size: 1.2rem;
   }
 
   button {
