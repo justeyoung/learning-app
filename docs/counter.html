@@ -9,12 +9,20 @@
 <body>
   <div class="counter-container">
     <h1>Exercise Counter</h1>
+
+    <button class="reset-btn" onclick="resetCount()">Reset</button>
+
     <div id="count" class="count-display">0</div>
+
     <div class="button-row">
       <button onclick="decrement()">−</button>
       <button onclick="increment()">+</button>
     </div>
   </div>
+
+  <!-- Preload click sound -->
+  <audio id="clickAudio" src="click.mp3" preload="auto"></audio>
+
   <script src="counter.js"></script>
 </body>
 </html>
