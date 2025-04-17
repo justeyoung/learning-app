@@ -9,7 +9,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const resultScreen = document.getElementById("result-screen");
   const scoreText = document.getElementById("scoreText");
 
-  const questions = [
+  const originalQuestions = [
     {
       question: "What is Ground 1?",
       options: [
@@ -94,42 +94,46 @@ document.addEventListener("DOMContentLoaded", () => {
 
   let currentQuestion = 0;
   let score = 0;
+  let questions = [];
 
   startBtn.addEventListener("click", () => {
     landing.style.display = "none";
     resultScreen.style.display = "none";
     quizContainer.style.display = "flex";
-    currentQuestion = 0;
     score = 0;
+    currentQuestion = 0;
+    questions = shuffle([...originalQuestions]); // Clone and shuffle
     showQuestion();
   });
 
   function showQuestion() {
     const q = questions[currentQuestion];
-    questionEl.textContent = q.question;
+    const { question, options, answer } = q;
+
+    questionEl.textContent = question;
     feedbackEl.textContent = "";
     nextBtn.style.display = "none";
     choicesEl.innerHTML = "";
 
-    q.options.forEach((option, index) => {
+    // Shuffle options and track correct one
+    const shuffledOptions = shuffle(options.map((opt, i) => ({ text: opt, index: i })));
+
+    shuffledOptions.forEach((optObj) => {
       const btn = document.createElement("button");
-      btn.textContent = option;
-      btn.onclick = () => selectAnswer(index);
+      btn.textContent = optObj.text;
+      btn.onclick = () => {
+        const isCorrect = optObj.index === answer;
+        if (isCorrect) {
+          score++;
+          feedbackEl.textContent = `Correct! ${score} of 8 correct.`;
+        } else {
+          feedbackEl.textContent = `Incorrect. Correct answer: "${options[answer]}".`;
+        }
+        Array.from(choicesEl.children).forEach(btn => btn.disabled = true);
+        nextBtn.style.display = "inline-block";
+      };
       choicesEl.appendChild(btn);
     });
-  }
-
-  function selectAnswer(index) {
-    const correct = questions[currentQuestion].answer;
-    if (index === correct) {
-      feedbackEl.textContent = "Correct! " + (score + 1) + " of 8 correct.";
-      score++;
-    } else {
-      feedbackEl.textContent = `Incorrect. Correct answer: "${questions[currentQuestion].options[correct]}".`;
-    }
-
-    Array.from(choicesEl.children).forEach(btn => btn.disabled = true);
-    nextBtn.style.display = "inline-block";
   }
 
   nextBtn.addEventListener("click", () => {
@@ -152,21 +156,11 @@ document.addEventListener("DOMContentLoaded", () => {
     landing.style.display = "flex";
   };
 
-  window.startQuiz = function () {
-    landing.style.display = "none";
-    resultScreen.style.display = "none";
-    quizContainer.style.display = "flex";
-    currentQuestion = 0;
-    score = 0;
-    showQuestion();
-  };
-
-  window.nextQuestion = function () {
-    currentQuestion++;
-    if (currentQuestion < questions.length) {
-      showQuestion();
-    } else {
-      showResults();
+  function shuffle(array) {
+    for (let i = array.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [array[i], array[j]] = [array[j], array[i]];
     }
-  };
+    return array;
+  }
 });
