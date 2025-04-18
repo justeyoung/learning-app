@@ -1,43 +1,43 @@
-let count = 0;
+document.addEventListener("DOMContentLoaded", () => {
+  const countDisplay = document.getElementById("count");
+  const clickSound = document.getElementById("clickAudio");
 
-// Get the display and click sound elements
-const countDisplay = document.getElementById("count");
-const clickSound = document.getElementById("clickAudio");
+  let count = 0;
 
-// Function to play sound and vibrate
-function playFeedback() {
-  if ("vibrate" in navigator) {
-    navigator.vibrate(100); // Vibrate for 100ms
+  function playFeedback() {
+    if ("vibrate" in navigator) {
+      navigator.vibrate(100);
+    }
+
+    if (clickSound) {
+      clickSound.currentTime = 0;
+      clickSound.play().catch((e) => {
+        console.log("Sound failed:", e);
+      });
+    }
   }
 
-  if (clickSound) {
-    clickSound.currentTime = 0;
-    clickSound.play().catch((error) => {
-      console.log("Click sound failed to play:", error);
-    });
+  function updateDisplay() {
+    countDisplay.textContent = count;
   }
-}
 
-// Update the number display
-function updateDisplay() {
-  countDisplay.textContent = count;
-}
+  window.increment = function () {
+    count++;
+    updateDisplay();
+    playFeedback();
+  };
 
-// Button actions
-function increment() {
-  count++;
+  window.decrement = function () {
+    count = Math.max(0, count - 1);
+    updateDisplay();
+    playFeedback();
+  };
+
+  window.resetCount = function () {
+    count = 0;
+    updateDisplay();
+    playFeedback();
+  };
+
   updateDisplay();
-  playFeedback();
-}
-
-function decrement() {
-  count = Math.max(0, count - 1);
-  updateDisplay();
-  playFeedback();
-}
-
-function resetCount() {
-  count = 0;
-  updateDisplay();
-  playFeedback();
-}
+});
