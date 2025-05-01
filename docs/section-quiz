@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Section Quiz: Homelessness Reduction Act</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="quiz-container">
+    <h1>Section Quiz: Homelessness Reduction Act</h1>
+    <div id="question-box">
+      <p id="question-text"></p>
+      <div id="answer-buttons"></div>
+      <p id="feedback" class="feedback"></p>
+      <p id="mnemonic" class="mnemonic"></p>
+    </div>
+    <div id="result-box" class="hidden">
+      <p id="score-text"></p>
+      <button onclick="startQuiz()">Retry</button>
+    </div>
+    <button onclick="location.href='index.html'" class="home-btn">Home</button>
+  </div>
+
+  <audio id="correct-sound" src="correct.mp3" preload="auto"></audio>
+  <audio id="wrong-sound" src="wrong.mp3" preload="auto"></audio>
+  <script src="quiz-section.js"></script>
+</body>
+</html>
