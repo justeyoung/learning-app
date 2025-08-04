@@ -17,7 +17,7 @@ function setCustomTime() {
 
 function toggleCustomInput() {
   const inputBox = document.getElementById("custom-input");
-  inputBox.style.display = inputBox.style.display === "none" ? "block" : "none";
+  inputBox.style.display = inputBox.style.display === "none" ? "flex" : "none";
 }
 
 function startTimer() {
