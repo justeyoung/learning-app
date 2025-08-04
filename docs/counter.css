@@ -30,34 +30,63 @@ h1, h2 {
   margin: 10px 0;
 }
 
-/* Buttons */
+/* Timer feedback */
+#time-up {
+  display: none;
+  font-size: 0.95rem;
+  color: salmon;
+  margin: 8px 0;
+}
+
+/* General buttons */
 button {
   padding: 10px 14px;
   font-size: 0.95rem;
   border: none;
   border-radius: 6px;
-  background-color: #2962ff;
-  color: #fff;
   margin: 4px;
   min-width: 70px;
 }
 
-button:hover {
-  background-color: #0039cb;
+/* Presets (30/60/90/2min) */
+.preset-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
 }
 
-/* Button groups */
-.preset-buttons,
-.control-buttons,
-.sets {
+.preset-buttons button {
+  background-color: #444;
+  color: white;
+  font-size: 0.8rem;
+}
+
+.preset-buttons button.active {
+  background-color: red;
+  color: white;
+}
+
+/* Timer controls (Start, Pause, etc.) */
+.control-buttons {
   display: flex;
   justify-content: center;
   flex-wrap: wrap;
   gap: 6px;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 }
 
-/* Custom input section */
+.control-buttons button {
+  background-color: #444;
+  color: white;
+}
+
+.control-buttons button:hover {
+  background-color: #666;
+}
+
+/* Custom input */
 #custom-input {
   display: flex;
   justify-content: center;
@@ -75,16 +104,28 @@ button:hover {
   border: none;
 }
 
-/* Set buttons */
+/* Sets section */
+.sets {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
 .sets .set-btn {
-  width: 42px;
-  height: 42px;
+  width: 40px;
+  height: 40px;
   font-size: 1rem;
   padding: 0;
+  background-color: black;
+  color: white;
+  border: none;
+  border-radius: 6px;
 }
 
 .set-btn.active {
   background-color: red;
+  color: white;
 }
 
 /* Home button */
