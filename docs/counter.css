@@ -17,19 +17,20 @@ body {
   align-items: center;
 }
 
-/* TITLE */
+/* Title */
 h1, h2 {
   font-size: 1.2rem;
   margin: 10px 0 5px;
+  text-align: center;
 }
 
-/* COUNTDOWN */
+/* Countdown */
 #timer-display {
   font-size: 3.8rem;
   margin: 10px 0;
 }
 
-/* BUTTONS COMMON */
+/* Buttons */
 button {
   padding: 10px 14px;
   font-size: 0.95rem;
@@ -38,13 +39,14 @@ button {
   background-color: #2962ff;
   color: #fff;
   margin: 4px;
+  min-width: 70px;
 }
 
 button:hover {
   background-color: #0039cb;
 }
 
-/* PRESETS + CONTROLS IN ROWS */
+/* Button groups */
 .preset-buttons,
 .control-buttons,
 .sets {
@@ -55,7 +57,7 @@ button:hover {
   margin-bottom: 8px;
 }
 
-/* CUSTOM INPUT (INLINE) */
+/* Custom input section */
 #custom-input {
   display: flex;
   justify-content: center;
@@ -73,7 +75,7 @@ button:hover {
   border: none;
 }
 
-/* SET BUTTONS */
+/* Set buttons */
 .sets .set-btn {
   width: 42px;
   height: 42px;
@@ -85,7 +87,7 @@ button:hover {
   background-color: red;
 }
 
-/* HOME */
+/* Home button */
 .home-btn {
   background-color: #333;
   margin-top: 20px;
