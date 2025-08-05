@@ -49,6 +49,7 @@ h1 {
 .preset-buttons button.active {
   background-color: red;
   color: white;
+  will-change: background-color;
 }
 
 .control-buttons {
@@ -75,6 +76,7 @@ h1 {
 .control-buttons button.active {
   background-color: red;
   color: white;
+  will-change: background-color;
 }
 
 #custom-input {
@@ -121,6 +123,7 @@ h1 {
 .sets .set-btn.active {
   background-color: red;
   color: white;
+  will-change: background-color;
 }
 
 .home-btn {
