@@ -1,140 +1,122 @@
 body {
+  font-family: Arial, sans-serif;
+  background-color: #f2f2f2;
+  color: #333;
   margin: 0;
   padding: 0;
-  font-family: 'Segoe UI', sans-serif;
-  background: #111;
-  color: #fff;
-  display: flex;
-  justify-content: center;
 }
 
 .container {
-  width: 100%;
-  max-width: 400px;
-  padding: 20px 12px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-/* Titles */
-h1, h2 {
-  font-size: 1.2rem;
-  margin: 10px 0 5px;
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 20px 15px;
   text-align: center;
 }
 
-/* Countdown Display */
-#timer-display {
-  font-size: 3.8rem;
+h1, h2 {
+  font-size: 1.2rem;
   margin: 10px 0;
 }
 
-/* Time's up message */
-#time-up {
-  display: none;
-  font-size: 0.95rem;
-  color: salmon;
-  margin: 8px 0;
+#timer-display {
+  font-size: 3.5rem;
+  margin: 15px 0;
+  font-weight: bold;
 }
 
-/* Buttons Shared */
-button {
-  padding: 10px 14px;
-  font-size: 0.95rem;
-  border: none;
-  border-radius: 6px;
-  margin: 4px;
-  min-width: 70px;
-}
-
-/* Preset Buttons */
-.preset-buttons {
+.preset-buttons,
+.control-buttons,
+.sets {
   display: flex;
   justify-content: center;
-  gap: 6px;
   flex-wrap: wrap;
-  margin-bottom: 8px;
+  gap: 8px;
+  margin: 12px 0;
 }
 
+.preset-buttons button,
+.control-buttons button,
+.sets .set-btn {
+  font-size: 0.75rem;
+  padding: 6px 10px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  flex: 1 1 auto;
+  min-width: 60px;
+  transition: background-color 0.2s;
+}
+
+/* Timer selection */
 .preset-buttons button {
-  background-color: #444;
-  color: white;
-  font-size: 0.8rem;
+  background-color: white;
+  color: #333;
+  border: 1px solid #ccc;
 }
 
-.preset-buttons button.active,
+.preset-buttons button.active {
+  background-color: red;
+  color: white;
+}
+
+/* Control buttons: Start, Pause, etc. */
+.control-buttons button {
+  background-color: #ccc;
+  color: white;
+}
+
 .control-buttons button.active {
   background-color: red;
   color: white;
 }
 
-/* Control Buttons */
-.control-buttons {
-  display: flex;
-  justify-content: center;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-bottom: 6px;
-}
-
-.control-buttons button {
-  background-color: #444;
-  color: white;
-}
-
-.control-buttons button:hover {
-  background-color: #666;
-}
-
-/* Custom Input */
-#custom-input {
-  display: flex;
-  justify-content: center;
-  gap: 6px;
-  margin-bottom: 10px;
-  flex-wrap: wrap;
-}
-
-#custom-input input {
-  width: 60px;
-  padding: 6px;
-  text-align: center;
-  font-size: 1rem;
-  border-radius: 5px;
-  border: none;
-}
-
-/* Sets Section (1–5) */
-.sets {
-  display: flex;
-  justify-content: center;
-  column-gap: 2px;
-  flex-wrap: nowrap;
-  margin-bottom: 10px;
-  padding: 0;
-}
-
+/* Sets section */
 .sets .set-btn {
-  font-size: 0.85rem;
-  width: 28px;
-  height: 28px;
-  padding: 0;
-  margin: 0;
   background-color: black;
   color: white;
-  border: none;
-  border-radius: 4px;
-  flex-shrink: 1;
+  padding: 4px 8px;
+  font-size: 0.75rem;
+  min-width: unset;
+  width: 36px;
 }
 
-.set-btn.active {
+.sets .set-btn.active {
   background-color: red;
   color: white;
 }
 
-/* Home Button */
+/* Home button */
 .home-btn {
-  background-color: #333;
   margin-top: 20px;
+  padding: 8px 12px;
+  font-size: 0.9rem;
+  background-color: #444;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+/* Custom input box */
+#custom-input {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin: 12px 0;
+}
+
+#custom-input input {
+  width: 60px;
+  padding: 4px;
+  font-size: 0.9rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+/* Time's up message */
+#time-up {
+  display: none;
+  color: salmon;
+  font-size: 0.95rem;
+  margin: 10px 0 0;
 }
