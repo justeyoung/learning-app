@@ -19,6 +19,7 @@
 
     <div id="timer-display">00:00</div>
 
+    <!-- Time preset buttons -->
     <div class="preset-buttons">
       <button onclick="setPreset(event, 30)">30 SEC</button>
       <button onclick="setPreset(event, 60)">60 SEC</button>
@@ -26,6 +27,7 @@
       <button onclick="setPreset(event, 120)">2 MIN</button>
     </div>
 
+    <!-- Start, Pause, Reset, Custom -->
     <div class="control-buttons">
       <button onclick="startTimer(event)">START</button>
       <button onclick="pauseTimer(event)">PAUSE</button>
@@ -33,14 +35,17 @@
       <button onclick="toggleCustomInput(event)">CUSTOM</button>
     </div>
 
+    <!-- Custom time input -->
     <div id="custom-input" style="display: none;">
       <input type="number" id="custom-minutes" placeholder="Min" min="0">
       <input type="number" id="custom-seconds" placeholder="Sec" min="0" max="59">
       <button onclick="setCustomTime()">SET</button>
     </div>
 
+    <!-- Time up message -->
     <div id="time-up">Time’s up!</div>
 
+    <!-- Sets -->
     <h2>SETS ▲</h2>
     <div class="sets">
       <button class="set-btn" onclick="toggleSet(this)">1</button>
@@ -50,6 +55,7 @@
       <button class="set-btn" onclick="toggleSet(this)">5</button>
     </div>
 
+    <!-- Home button -->
     <a href="index.html">
       <button class="home-btn">Home</button>
     </a>
