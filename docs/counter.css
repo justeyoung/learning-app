@@ -27,7 +27,7 @@ h1, h2 {
   font-weight: bold;
 }
 
-/* Preset timer buttons */
+/* Preset time buttons */
 .preset-buttons {
   display: flex;
   justify-content: center;
@@ -59,21 +59,21 @@ h1, h2 {
 .control-buttons {
   display: flex;
   justify-content: center;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 6px;
   margin: 10px 0;
 }
 
 .control-buttons button {
-  font-size: 0.72rem;
-  padding: 5px 8px;
+  font-size: 0.68rem;
+  padding: 4px 6px;
   border: none;
   border-radius: 5px;
   cursor: pointer;
   background-color: #ccc;
   color: white;
-  flex: 1 1 22%;
-  min-width: 60px;
+  flex: 0 1 22%;
+  max-width: 70px;
   transition: background-color 0.2s;
 }
 
@@ -82,7 +82,7 @@ h1, h2 {
   color: white;
 }
 
-/* Custom input section */
+/* Custom time input */
 #custom-input {
   display: flex;
   justify-content: center;
@@ -98,7 +98,7 @@ h1, h2 {
   border-radius: 4px;
 }
 
-/* Time’s up message */
+/* Time’s up! message */
 #time-up {
   display: none;
   color: salmon;
