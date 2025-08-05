@@ -4,7 +4,14 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Exercise Timer</title>
+
+  <!-- Styles -->
   <link rel="stylesheet" href="counter.css" />
+
+  <!-- PWA Support -->
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icon-192.png">
+  <meta name="theme-color" content="#111111">
 </head>
 <body>
   <div class="container">
@@ -47,9 +54,19 @@
       <button class="home-btn">Home</button>
     </a>
 
+    <!-- Sounds -->
     <audio id="alarmSound" src="alert.wav" preload="auto"></audio>
     <audio id="clickSound" src="click.mp3" preload="auto"></audio>
+
+    <!-- Scripts -->
     <script src="counter.js"></script>
+    <script>
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('service-worker.js')
+          .then(() => console.log('Service Worker registered'))
+          .catch(err => console.error('SW registration failed:', err));
+      }
+    </script>
   </div>
 </body>
 </html>
