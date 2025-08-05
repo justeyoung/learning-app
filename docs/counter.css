@@ -1,3 +1,4 @@
+/* Base styles */
 body {
   font-family: Arial, sans-serif;
   background-color: #f2f2f2;
@@ -6,6 +7,7 @@ body {
   padding: 0;
 }
 
+/* Container for all elements */
 .container {
   max-width: 480px;
   margin: 0 auto;
@@ -13,17 +15,20 @@ body {
   text-align: center;
 }
 
+/* Title styles */
 h1, h2 {
   font-size: 1.2rem;
   margin: 10px 0;
 }
 
+/* Timer display */
 #timer-display {
   font-size: 3.5rem;
   margin: 15px 0;
   font-weight: bold;
 }
 
+/* Grouped button containers */
 .preset-buttons,
 .control-buttons,
 .sets {
@@ -34,6 +39,7 @@ h1, h2 {
   margin: 12px 0;
 }
 
+/* Button base styles */
 .preset-buttons button,
 .control-buttons button,
 .sets .set-btn {
@@ -47,7 +53,7 @@ h1, h2 {
   transition: background-color 0.2s;
 }
 
-/* Timer selection */
+/* Preset time buttons */
 .preset-buttons button {
   background-color: white;
   color: #333;
@@ -59,7 +65,7 @@ h1, h2 {
   color: white;
 }
 
-/* Control buttons: Start, Pause, etc. */
+/* Control buttons like Start, Pause, etc. */
 .control-buttons button {
   background-color: #ccc;
   color: white;
@@ -70,14 +76,14 @@ h1, h2 {
   color: white;
 }
 
-/* Sets section */
+/* Sets buttons 1–5 */
 .sets .set-btn {
   background-color: black;
   color: white;
-  padding: 4px 8px;
+  padding: 4px 6px;
   font-size: 0.75rem;
-  min-width: unset;
-  width: 36px;
+  width: 32px;
+  min-width: 32px;
 }
 
 .sets .set-btn.active {
@@ -97,7 +103,7 @@ h1, h2 {
   cursor: pointer;
 }
 
-/* Custom input box */
+/* Custom input section */
 #custom-input {
   display: flex;
   justify-content: center;
@@ -113,7 +119,7 @@ h1, h2 {
   border-radius: 4px;
 }
 
-/* Time's up message */
+/* Time-up message */
 #time-up {
   display: none;
   color: salmon;
