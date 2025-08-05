@@ -26,7 +26,7 @@ function setPreset(event, seconds) {
   });
   event.target.classList.add("active");
 
-  // Also unhighlight all control buttons (so START isn't red by default)
+  // Unhighlight control buttons (so START doesn't stay red by default)
   document.querySelectorAll(".control-buttons button").forEach(btn => {
     btn.classList.remove("active");
   });
@@ -40,23 +40,19 @@ function setCustomTime() {
   document.getElementById("custom-input").style.display = "none";
   document.getElementById("time-up").style.display = "none";
 
-  // Clear preset highlights
-  document.querySelectorAll(".preset-buttons button").forEach(btn => {
-    btn.classList.remove("active");
-  });
-
-  // Clear control highlights
-  document.querySelectorAll(".control-buttons button").forEach(btn => {
+  // Unhighlight preset and control buttons
+  document.querySelectorAll(".preset-buttons button, .control-buttons button").forEach(btn => {
     btn.classList.remove("active");
   });
 }
 
 function toggleCustomInput(event) {
   playClickSound();
+
   document.querySelectorAll(".control-buttons button").forEach(btn => {
     btn.classList.remove("active");
   });
-  event.target.classList.add("active");
+  if (event && event.target) event.target.classList.add("active");
 
   const inputBox = document.getElementById("custom-input");
   inputBox.style.display = inputBox.style.display === "none" ? "flex" : "none";
@@ -64,10 +60,11 @@ function toggleCustomInput(event) {
 
 function startTimer(event) {
   playClickSound();
+
   document.querySelectorAll(".control-buttons button").forEach(btn => {
     btn.classList.remove("active");
   });
-  event.target.classList.add("active");
+  if (event && event.target) event.target.classList.add("active");
 
   clearInterval(timerInterval);
   document.getElementById("time-up").style.display = "none";
@@ -98,7 +95,7 @@ function pauseTimer(event) {
   document.querySelectorAll(".control-buttons button").forEach(btn => {
     btn.classList.remove("active");
   });
-  event.target.classList.add("active");
+  if (event && event.target) event.target.classList.add("active");
 }
 
 function resetTimer(event) {
@@ -108,14 +105,10 @@ function resetTimer(event) {
   updateDisplay();
   document.getElementById("time-up").style.display = "none";
 
-  document.querySelectorAll(".preset-buttons button").forEach(btn => {
+  document.querySelectorAll(".preset-buttons button, .control-buttons button").forEach(btn => {
     btn.classList.remove("active");
   });
-
-  document.querySelectorAll(".control-buttons button").forEach(btn => {
-    btn.classList.remove("active");
-  });
-  event.target.classList.add("active");
+  if (event && event.target) event.target.classList.add("active");
 }
 
 function toggleSet(button) {
