@@ -63,7 +63,8 @@ button {
   font-size: 0.8rem;
 }
 
-.preset-buttons button.active {
+.preset-buttons button.active,
+.control-buttons button.active {
   background-color: red;
   color: white;
 }
