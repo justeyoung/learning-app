@@ -20,12 +20,13 @@ function setPreset(event, seconds) {
   updateDisplay();
   document.getElementById("time-up").style.display = "none";
 
-  // Clear active states
   document.querySelectorAll(".preset-buttons button, .control-buttons button").forEach(btn => {
     btn.classList.remove("active");
   });
 
   event.target.classList.add("active");
+  event.target.blur();
+  void event.target.offsetWidth;
 }
 
 function setCustomTime() {
@@ -36,7 +37,6 @@ function setCustomTime() {
   document.getElementById("custom-input").style.display = "none";
   document.getElementById("time-up").style.display = "none";
 
-  // Clear highlights
   document.querySelectorAll(".preset-buttons button, .control-buttons button").forEach(btn => {
     btn.classList.remove("active");
   });
@@ -51,9 +51,9 @@ function toggleCustomInput(event) {
     btn.classList.remove("active");
   });
 
-  if (event?.target) {
-    event.target.classList.add("active");
-  }
+  event.target.classList.add("active");
+  event.target.blur();
+  void event.target.offsetWidth;
 }
 
 function startTimer(event) {
@@ -61,14 +61,13 @@ function startTimer(event) {
   clearInterval(timerInterval);
   document.getElementById("time-up").style.display = "none";
 
-  // Clear control button highlights
   document.querySelectorAll(".control-buttons button").forEach(btn => {
     btn.classList.remove("active");
   });
 
-  if (event?.target) {
-    event.target.classList.add("active");
-  }
+  event.target.classList.add("active");
+  event.target.blur();
+  void event.target.offsetWidth;
 
   timerInterval = setInterval(() => {
     if (timeRemaining > 0) {
@@ -78,10 +77,8 @@ function startTimer(event) {
       clearInterval(timerInterval);
       document.getElementById("time-up").style.display = "block";
 
-      // Vibrate
       if (navigator.vibrate) navigator.vibrate([300, 200, 300]);
 
-      // Play alert
       const alarm = document.getElementById("alarmSound");
       alarm.currentTime = 0;
       alarm.play().catch(() => {});
@@ -97,9 +94,9 @@ function pauseTimer(event) {
     btn.classList.remove("active");
   });
 
-  if (event?.target) {
-    event.target.classList.add("active");
-  }
+  event.target.classList.add("active");
+  event.target.blur();
+  void event.target.offsetWidth;
 }
 
 function resetTimer(event) {
@@ -117,4 +114,6 @@ function resetTimer(event) {
 function toggleSet(button) {
   playClickSound();
   button.classList.toggle("active");
+  button.blur();
+  void button.offsetWidth;
 }
