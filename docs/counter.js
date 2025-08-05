@@ -20,10 +20,16 @@ function setPreset(event, seconds) {
   updateDisplay();
   document.getElementById("time-up").style.display = "none";
 
+  // Unhighlight all preset buttons
   document.querySelectorAll(".preset-buttons button").forEach(btn => {
     btn.classList.remove("active");
   });
   event.target.classList.add("active");
+
+  // Also unhighlight all control buttons (so START isn't red by default)
+  document.querySelectorAll(".control-buttons button").forEach(btn => {
+    btn.classList.remove("active");
+  });
 }
 
 function setCustomTime() {
@@ -34,7 +40,13 @@ function setCustomTime() {
   document.getElementById("custom-input").style.display = "none";
   document.getElementById("time-up").style.display = "none";
 
+  // Clear preset highlights
   document.querySelectorAll(".preset-buttons button").forEach(btn => {
+    btn.classList.remove("active");
+  });
+
+  // Clear control highlights
+  document.querySelectorAll(".control-buttons button").forEach(btn => {
     btn.classList.remove("active");
   });
 }
