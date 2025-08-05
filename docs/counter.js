@@ -26,7 +26,7 @@ function setPreset(event, seconds) {
   });
   event.target.classList.add("active");
 
-  // Unhighlight control buttons (so START doesn't stay red by default)
+  // Unhighlight control buttons (START should not be red by default)
   document.querySelectorAll(".control-buttons button").forEach(btn => {
     btn.classList.remove("active");
   });
@@ -40,7 +40,7 @@ function setCustomTime() {
   document.getElementById("custom-input").style.display = "none";
   document.getElementById("time-up").style.display = "none";
 
-  // Unhighlight preset and control buttons
+  // Unhighlight all buttons
   document.querySelectorAll(".preset-buttons button, .control-buttons button").forEach(btn => {
     btn.classList.remove("active");
   });
@@ -49,10 +49,14 @@ function setCustomTime() {
 function toggleCustomInput(event) {
   playClickSound();
 
+  // Toggle highlight and show/hide input
   document.querySelectorAll(".control-buttons button").forEach(btn => {
     btn.classList.remove("active");
   });
-  if (event && event.target) event.target.classList.add("active");
+
+  if (event && event.target) {
+    event.target.classList.add("active");
+  }
 
   const inputBox = document.getElementById("custom-input");
   inputBox.style.display = inputBox.style.display === "none" ? "flex" : "none";
@@ -61,10 +65,14 @@ function toggleCustomInput(event) {
 function startTimer(event) {
   playClickSound();
 
+  // Highlight START button
   document.querySelectorAll(".control-buttons button").forEach(btn => {
     btn.classList.remove("active");
   });
-  if (event && event.target) event.target.classList.add("active");
+
+  if (event && event.target) {
+    event.target.classList.add("active");
+  }
 
   clearInterval(timerInterval);
   document.getElementById("time-up").style.display = "none";
@@ -77,10 +85,12 @@ function startTimer(event) {
       clearInterval(timerInterval);
       document.getElementById("time-up").style.display = "block";
 
+      // Vibration (if supported)
       if (navigator.vibrate) {
         navigator.vibrate([300, 200, 300]);
       }
 
+      // Alarm sound
       const alarm = document.getElementById("alarmSound");
       alarm.currentTime = 0;
       alarm.play().catch(() => {});
@@ -92,10 +102,14 @@ function pauseTimer(event) {
   playClickSound();
   clearInterval(timerInterval);
 
+  // Highlight PAUSE
   document.querySelectorAll(".control-buttons button").forEach(btn => {
     btn.classList.remove("active");
   });
-  if (event && event.target) event.target.classList.add("active");
+
+  if (event && event.target) {
+    event.target.classList.add("active");
+  }
 }
 
 function resetTimer(event) {
@@ -105,10 +119,14 @@ function resetTimer(event) {
   updateDisplay();
   document.getElementById("time-up").style.display = "none";
 
+  // Highlight RESET
   document.querySelectorAll(".preset-buttons button, .control-buttons button").forEach(btn => {
     btn.classList.remove("active");
   });
-  if (event && event.target) event.target.classList.add("active");
+
+  if (event && event.target) {
+    event.target.classList.add("active");
+  }
 }
 
 function toggleSet(button) {
