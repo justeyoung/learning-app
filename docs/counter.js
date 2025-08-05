@@ -82,6 +82,7 @@ function startTimer(event) {
 function pauseTimer(event) {
   playClickSound();
   clearInterval(timerInterval);
+
   document.querySelectorAll(".control-buttons button").forEach(btn => {
     btn.classList.remove("active");
   });
