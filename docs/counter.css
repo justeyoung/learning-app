@@ -1,4 +1,4 @@
-/* Base styles */
+/* Base layout */
 body {
   font-family: Arial, sans-serif;
   background-color: #f2f2f2;
@@ -7,7 +7,6 @@ body {
   padding: 0;
 }
 
-/* Container for all elements */
 .container {
   max-width: 480px;
   margin: 0 auto;
@@ -15,7 +14,7 @@ body {
   text-align: center;
 }
 
-/* Title styles */
+/* Headings */
 h1, h2 {
   font-size: 1.2rem;
   margin: 10px 0;
@@ -28,10 +27,8 @@ h1, h2 {
   font-weight: bold;
 }
 
-/* Grouped button containers */
-.preset-buttons,
-.control-buttons,
-.sets {
+/* Preset timer buttons */
+.preset-buttons {
   display: flex;
   justify-content: center;
   flex-wrap: wrap;
@@ -39,25 +36,18 @@ h1, h2 {
   margin: 12px 0;
 }
 
-/* Button base styles */
-.preset-buttons button,
-.control-buttons button,
-.sets .set-btn {
+.preset-buttons button {
   font-size: 0.75rem;
   padding: 6px 10px;
   border: none;
   border-radius: 5px;
   cursor: pointer;
-  flex: 1 1 auto;
-  min-width: 60px;
-  transition: background-color 0.2s;
-}
-
-/* Preset time buttons */
-.preset-buttons button {
   background-color: white;
   color: #333;
   border: 1px solid #ccc;
+  flex: 1 1 22%;
+  min-width: 60px;
+  transition: background-color 0.2s;
 }
 
 .preset-buttons button.active {
@@ -65,42 +55,31 @@ h1, h2 {
   color: white;
 }
 
-/* Control buttons like Start, Pause, etc. */
+/* Control buttons: Start, Pause, Reset, Custom */
+.control-buttons {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 10px 0;
+}
+
 .control-buttons button {
+  font-size: 0.72rem;
+  padding: 5px 8px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
   background-color: #ccc;
   color: white;
+  flex: 1 1 22%;
+  min-width: 60px;
+  transition: background-color 0.2s;
 }
 
 .control-buttons button.active {
   background-color: red;
   color: white;
-}
-
-/* Sets buttons 1–5 */
-.sets .set-btn {
-  background-color: black;
-  color: white;
-  padding: 4px 6px;
-  font-size: 0.75rem;
-  width: 32px;
-  min-width: 32px;
-}
-
-.sets .set-btn.active {
-  background-color: red;
-  color: white;
-}
-
-/* Home button */
-.home-btn {
-  margin-top: 20px;
-  padding: 8px 12px;
-  font-size: 0.9rem;
-  background-color: #444;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
 }
 
 /* Custom input section */
@@ -119,10 +98,47 @@ h1, h2 {
   border-radius: 4px;
 }
 
-/* Time-up message */
+/* Time’s up message */
 #time-up {
   display: none;
   color: salmon;
   font-size: 0.95rem;
   margin: 10px 0 0;
+}
+
+/* Sets section */
+.sets {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  margin: 12px 0;
+}
+
+.sets .set-btn {
+  background-color: black;
+  color: white;
+  font-size: 0.75rem;
+  padding: 4px 6px;
+  border: none;
+  border-radius: 5px;
+  width: 32px;
+  min-width: 32px;
+  cursor: pointer;
+}
+
+.sets .set-btn.active {
+  background-color: red;
+  color: white;
+}
+
+/* Home button */
+.home-btn {
+  margin-top: 20px;
+  padding: 8px 12px;
+  font-size: 0.9rem;
+  background-color: #444;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
 }
