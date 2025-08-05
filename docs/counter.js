@@ -7,18 +7,22 @@ function updateDisplay() {
   document.getElementById("timer-display").innerText = `${min}:${sec}`;
 }
 
+function playClickSound() {
+  const click = document.getElementById("clickSound");
+  click.currentTime = 0;
+  click.play().catch(() => {});
+}
+
 function setPreset(event, seconds) {
+  playClickSound();
   clearInterval(timerInterval);
   timeRemaining = seconds;
   updateDisplay();
   document.getElementById("time-up").style.display = "none";
 
-  // Remove all active presets
   document.querySelectorAll(".preset-buttons button").forEach(btn => {
     btn.classList.remove("active");
   });
-
-  // Mark selected
   event.target.classList.add("active");
 }
 
@@ -30,18 +34,29 @@ function setCustomTime() {
   document.getElementById("custom-input").style.display = "none";
   document.getElementById("time-up").style.display = "none";
 
-  // Remove preset highlights
   document.querySelectorAll(".preset-buttons button").forEach(btn => {
     btn.classList.remove("active");
   });
 }
 
-function toggleCustomInput() {
+function toggleCustomInput(event) {
+  playClickSound();
+  document.querySelectorAll(".control-buttons button").forEach(btn => {
+    btn.classList.remove("active");
+  });
+  event.target.classList.add("active");
+
   const inputBox = document.getElementById("custom-input");
   inputBox.style.display = inputBox.style.display === "none" ? "flex" : "none";
 }
 
-function startTimer() {
+function startTimer(event) {
+  playClickSound();
+  document.querySelectorAll(".control-buttons button").forEach(btn => {
+    btn.classList.remove("active");
+  });
+  event.target.classList.add("active");
+
   clearInterval(timerInterval);
   document.getElementById("time-up").style.display = "none";
 
@@ -53,37 +68,44 @@ function startTimer() {
       clearInterval(timerInterval);
       document.getElementById("time-up").style.display = "block";
 
-      // Vibrate if supported
       if (navigator.vibrate) {
         navigator.vibrate([300, 200, 300]);
       }
 
-      // Play sound
       const alarm = document.getElementById("alarmSound");
       alarm.currentTime = 0;
-      alarm.play().catch(err => {
-        console.log("Audio blocked until user interaction.");
-      });
+      alarm.play().catch(() => {});
     }
   }, 1000);
 }
 
-function pauseTimer() {
+function pauseTimer(event) {
+  playClickSound();
   clearInterval(timerInterval);
+  document.querySelectorAll(".control-buttons button").forEach(btn => {
+    btn.classList.remove("active");
+  });
+  event.target.classList.add("active");
 }
 
-function resetTimer() {
+function resetTimer(event) {
+  playClickSound();
   clearInterval(timerInterval);
   timeRemaining = 0;
   updateDisplay();
   document.getElementById("time-up").style.display = "none";
 
-  // Clear presets
   document.querySelectorAll(".preset-buttons button").forEach(btn => {
     btn.classList.remove("active");
   });
+
+  document.querySelectorAll(".control-buttons button").forEach(btn => {
+    btn.classList.remove("active");
+  });
+  event.target.classList.add("active");
 }
 
 function toggleSet(button) {
+  playClickSound();
   button.classList.toggle("active");
 }
