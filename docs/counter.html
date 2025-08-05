@@ -20,10 +20,10 @@
     </div>
 
     <div class="control-buttons">
-      <button onclick="startTimer()">START</button>
-      <button onclick="pauseTimer()">PAUSE</button>
-      <button onclick="resetTimer()">RESET</button>
-      <button onclick="toggleCustomInput()">CUSTOM</button>
+      <button onclick="startTimer(event)">START</button>
+      <button onclick="pauseTimer(event)">PAUSE</button>
+      <button onclick="resetTimer(event)">RESET</button>
+      <button onclick="toggleCustomInput(event)">CUSTOM</button>
     </div>
 
     <div id="custom-input" style="display: none;">
@@ -48,6 +48,7 @@
     </a>
 
     <audio id="alarmSound" src="alert.wav" preload="auto"></audio>
+    <audio id="clickSound" src="click.mp3" preload="auto"></audio>
     <script src="counter.js"></script>
   </div>
 </body>
