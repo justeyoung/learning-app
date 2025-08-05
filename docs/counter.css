@@ -105,25 +105,27 @@ button {
   border: none;
 }
 
-/* Sets Section */
+/* Sets Section (1–5) */
 .sets {
   display: flex;
   justify-content: center;
-  gap: 4px;
+  column-gap: 2px;
   flex-wrap: nowrap;
   margin-bottom: 10px;
+  padding: 0;
 }
 
 .sets .set-btn {
-  width: 32px;
-  height: 32px;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
+  width: 28px;
+  height: 28px;
   padding: 0;
-  margin: 2px;
+  margin: 0;
   background-color: black;
   color: white;
   border: none;
-  border-radius: 5px;
+  border-radius: 4px;
+  flex-shrink: 1;
 }
 
 .set-btn.active {
