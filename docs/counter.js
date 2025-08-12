@@ -26,8 +26,8 @@ function ensureAudio(){
     catch { audioCtx = null; }
   }
   if (!clickEl) {
-    // Low-volume fallback file (keeps Spotify playing)
-    clickEl = new Audio('Click.mp3'); // case-sensitive to your /docs file
+    // Low-volume fallback click (keeps Spotify playing)
+    clickEl = new Audio('Click.mp3'); // case must match your file in /docs
     clickEl.preload = 'auto';
     clickEl.volume = 0.15;
   }
@@ -52,30 +52,56 @@ function beepShort(freq = 950, dur = 0.08, vol = 0.14){
 
 function playClick(){ ensureAudio(); beepShort(1000, 0.06, 0.12); }
 
-// Spotify‑friendly “Time’s up” (generated tones, no media playback)
+/**
+ * Spotify‑friendly “Time’s up” alert
+ * - Web Audio chime pattern (~2.4s, 8 notes), no media playback
+ * - Does NOT pause/duck Spotify
+ * - Fallback: multi-beep pattern if Web Audio unavailable
+ */
 function playAlert() {
   ensureAudio();
+
+  // Vibration cue (optional; won't affect audio focus)
+  try { navigator.vibrate && navigator.vibrate([250,120,250,120,250]); } catch {}
+
   if (!audioCtx) {
-    // graceful fallback: two quick beeps
-    beepShort(880, 0.15, 0.12);
-    setTimeout(() => beepShort(660, 0.15, 0.12), 180);
+    // Fallback: 8 fast beeps (~2.4s total)
+    let n = 0;
+    const id = setInterval(() => {
+      beepShort(n % 2 ? 700 : 950, 0.14, 0.16);
+      if (++n >= 8) clearInterval(id);
+    }, 300);
     return;
   }
-  const now = audioCtx.currentTime;
-  const tones = [
-    { freq: 880, dur: 0.16, delay: 0.00 },
-    { freq: 660, dur: 0.16, delay: 0.20 }
+
+  const ctx = audioCtx;
+  const start = ctx.currentTime;
+
+  // 8-note chime sequence (doesn't grab audio focus)
+  // times are relative to `start` (seconds)
+  const seq = [
+    { t: 0.00, f: 880, d: 0.18 },
+    { t: 0.24, f: 660, d: 0.18 },
+    { t: 0.48, f: 990, d: 0.18 },
+    { t: 0.84, f: 880, d: 0.22 },
+    { t: 1.12, f: 660, d: 0.22 },
+    { t: 1.40, f: 1046, d: 0.20 }, // C6
+    { t: 1.80, f: 880, d: 0.25 },
+    { t: 2.10, f: 660, d: 0.25 }
   ];
-  tones.forEach(t => {
-    const osc = audioCtx.createOscillator();
-    const gain = audioCtx.createGain();
-    osc.type = 'square';
-    osc.frequency.value = t.freq;
-    gain.gain.value = 0.14;
-    osc.connect(gain).connect(audioCtx.destination);
-    osc.start(now + (t.delay || 0));
-    gain.gain.exponentialRampToValueAtTime(0.0001, now + (t.delay || 0) + t.dur);
-    osc.stop(now + (t.delay || 0) + t.dur + 0.02);
+
+  seq.forEach(({ t, f, d }) => {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'square';         // bright, cuts through music
+    osc.frequency.value = f;
+    gain.gain.value = 0.0001;    // start silent to avoid click
+    osc.connect(gain).connect(ctx.destination);
+    osc.start(start + t);
+    // quick fade-in then exponential fade-out
+    gain.gain.exponentialRampToValueAtTime(0.18, start + t + 0.01);
+    gain.gain.exponentialRampToValueAtTime(0.0001, start + t + d);
+    osc.stop(start + t + d + 0.02);
   });
 }
 
@@ -113,7 +139,6 @@ function tick(){
     stopTimer();
     setDisplay(0);
     timesUpEl.textContent = "Time's up!";
-    try { navigator.vibrate && navigator.vibrate([200,100,200]); } catch {}
     playAlert();
   }
 }
