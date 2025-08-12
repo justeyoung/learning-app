@@ -73,16 +73,16 @@ h1 {
   background:#2b2f36; border:1px solid #262a33;
   position:relative; overflow:hidden;
 }
-.segbar .seg[data-type="warm"] { background:rgba(255,160,67,.25); border-color:#5a3d14; }
-.segbar .seg[data-type="fast"] { background:rgba(255,45,85,.25);  border-color:#5b1220; }
+.segbar .seg[data-type="warm"] { background:rgba(255,160,67,.25);  border-color:#5a3d14; }
+.segbar .seg[data-type="fast"] { background:rgba(255,45,85,.25);   border-color:#5b1220; }
 .segbar .seg[data-type="slow"] { background:rgba(77,163,255,.25);  border-color:#143659; }
-.segbar .seg[data-type="cool"] { background:rgba(52,211,153,.25); border-color:#0f3f2d; }
+.segbar .seg[data-type="cool"] { background:rgba(52,211,153,.25);  border-color:#0f3f2d; }
 
-/* Brighten completed */
-.segbar .seg.done[data-type="warm"] { background:rgba(255,160,67,.45); }
-.segbar .seg.done[data-type="fast"] { background:rgba(255,45,85,.45); }
-.segbar .seg.done[data-type="slow"] { background:rgba(77,163,255,.45); }
-.segbar .seg.done[data-type="cool"] { background:rgba(52,211,153,.45); }
+/* Brighten completed segments (50% for strong contrast) */
+.segbar .seg.done[data-type="warm"] { background:rgba(255,160,67, .75); }
+.segbar .seg.done[data-type="fast"] { background:rgba(255,45,85,  .75); }
+.segbar .seg.done[data-type="slow"] { background:rgba(77,163,255, .75); }
+.segbar .seg.done[data-type="cool"] { background:rgba(52,211,153, .75); }
 
 /* Pulse current */
 .segbar .seg.current::after {
@@ -125,15 +125,4 @@ button {
   transition:background-color .15s,border-color .15s,transform .05s;
 }
 button:hover { background:var(--btnHover); }
-button:active { transform:translateY(1px) scale(.995); }
-button.active { background:var(--active)!important; color:#fff!important; border-color:transparent; }
-
-/* Status */
-.status { min-height:20px; font-size:.95rem; color:var(--muted); margin-top:6px; }
-
-/* Tiny screens */
-@media (max-width:380px) {
-  .wheel-wrap { width:220px; height:220px; }
-  #timeLabel { font-size:2rem; }
-  button { min-width:70px; padding:7px 8px; font-size:.85rem; }
-}
+button:active { transform:translateY(1px)
