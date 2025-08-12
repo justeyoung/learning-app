@@ -1,119 +1,83 @@
-let timerInterval;
-let timeRemaining = 0;
+// ------ Counter logic + Spotify-friendly sound ------
 
-function updateDisplay() {
-  const min = String(Math.floor(timeRemaining / 60)).padStart(2, '0');
-  const sec = String(timeRemaining % 60).padStart(2, '0');
-  document.getElementById("timer-display").innerText = `${min}:${sec}`;
+let count = 0;
+
+// DOM
+const display = document.getElementById("counterDisplay");
+const minusBtn = document.getElementById("minusBtn");
+const plusBtn  = document.getElementById("plusBtn");
+
+// Update UI
+function render() {
+  if (display) display.textContent = String(count);
 }
 
-function playClickSound() {
-  const click = document.getElementById("clickSound");
-  click.currentTime = 0;
-  click.play().catch(() => {});
-}
+// --------- Sound (Web Audio preferred) ----------
+let audioCtx = null;
+let clickAudioEl = null;
 
-function setPreset(event, seconds) {
-  playClickSound();
-  clearInterval(timerInterval);
-  timeRemaining = seconds;
-  updateDisplay();
-  document.getElementById("time-up").style.display = "none";
-
-  document.querySelectorAll(".preset-buttons button, .control-buttons button").forEach(btn => {
-    btn.classList.remove("active");
-  });
-
-  event.target.classList.add("active");
-  event.target.blur();
-  void event.target.offsetWidth;
-}
-
-function setCustomTime() {
-  const min = parseInt(document.getElementById("custom-minutes").value) || 0;
-  const sec = parseInt(document.getElementById("custom-seconds").value) || 0;
-  timeRemaining = min * 60 + sec;
-  updateDisplay();
-  document.getElementById("custom-input").style.display = "none";
-  document.getElementById("time-up").style.display = "none";
-
-  document.querySelectorAll(".preset-buttons button, .control-buttons button").forEach(btn => {
-    btn.classList.remove("active");
-  });
-}
-
-function toggleCustomInput(event) {
-  playClickSound();
-  const box = document.getElementById("custom-input");
-  box.style.display = box.style.display === "none" ? "flex" : "none";
-
-  document.querySelectorAll(".control-buttons button").forEach(btn => {
-    btn.classList.remove("active");
-  });
-
-  event.target.classList.add("active");
-  event.target.blur();
-  void event.target.offsetWidth;
-}
-
-function startTimer(event) {
-  playClickSound();
-  clearInterval(timerInterval);
-  document.getElementById("time-up").style.display = "none";
-
-  document.querySelectorAll(".control-buttons button").forEach(btn => {
-    btn.classList.remove("active");
-  });
-
-  event.target.classList.add("active");
-  event.target.blur();
-  void event.target.offsetWidth;
-
-  timerInterval = setInterval(() => {
-    if (timeRemaining > 0) {
-      timeRemaining--;
-      updateDisplay();
-    } else {
-      clearInterval(timerInterval);
-      document.getElementById("time-up").style.display = "block";
-
-      if (navigator.vibrate) navigator.vibrate([300, 200, 300]);
-
-      const alarm = document.getElementById("alarmSound");
-      alarm.currentTime = 0;
-      alarm.play().catch(() => {});
+function ensureAudio() {
+  if (!audioCtx) {
+    try {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    } catch (e) {
+      audioCtx = null;
     }
-  }, 1000);
+  }
+  if (!clickAudioEl) {
+    // Low-volume fallback click (still mixes; won’t pause Spotify)
+    clickAudioEl = new Audio("docs/click.mp3");
+    clickAudioEl.preload = "auto";
+    clickAudioEl.volume = 0.15; // gentle
+  }
 }
 
-function pauseTimer(event) {
-  playClickSound();
-  clearInterval(timerInterval);
-
-  document.querySelectorAll(".control-buttons button").forEach(btn => {
-    btn.classList.remove("active");
-  });
-
-  event.target.classList.add("active");
-  event.target.blur();
-  void event.target.offsetWidth;
+function playClick() {
+  // Prefer Web Audio short blip (mixes nicely)
+  if (audioCtx) {
+    const now = audioCtx.currentTime;
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = "square";
+    osc.frequency.value = 1000; // click-like
+    gain.gain.value = 0.12;
+    osc.connect(gain).connect(audioCtx.destination);
+    osc.start(now);
+    // quick envelope to avoid pops
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.06);
+    osc.stop(now + 0.08);
+    return;
+  }
+  // Fallback to HTML5 audio (short, low volume, user-gesture -> won't pause Spotify)
+  if (clickAudioEl) {
+    try {
+      clickAudioEl.currentTime = 0;
+      clickAudioEl.play();
+    } catch (e) { /* ignore */ }
+  }
 }
 
-function resetTimer(event) {
-  playClickSound();
-  clearInterval(timerInterval);
-  timeRemaining = 0;
-  updateDisplay();
-  document.getElementById("time-up").style.display = "none";
-
-  document.querySelectorAll(".preset-buttons button, .control-buttons button").forEach(btn => {
-    btn.classList.remove("active");
-  });
+// ------ Event handlers ------
+function inc() {
+  ensureAudio(); // unlock on first tap
+  count += 1;
+  render();
+  playClick();
 }
 
-function toggleSet(button) {
-  playClickSound();
-  button.classList.toggle("active");
-  button.blur();
-  void button.offsetWidth;
+function dec() {
+  ensureAudio();
+  count = Math.max(0, count - 1);
+  render();
+  playClick();
 }
+
+// Attach
+document.addEventListener("DOMContentLoaded", () => {
+  render();
+  minusBtn?.addEventListener("click", dec);
+  plusBtn?.addEventListener("click", inc);
+
+  // Also unlock audio on first touch anywhere (helps some mobile browsers)
+  window.addEventListener("touchstart", ensureAudio, { once: true });
+});
