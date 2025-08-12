@@ -17,6 +17,7 @@ h1{
   width: 260px;
   height: 260px;
   margin: 0 auto 16px;
+  z-index: 1;              /* ensure it sits above background */
 }
 
 .wheel{
@@ -24,20 +25,16 @@ h1{
   width: 100%;
   height: 100%;
   transform: rotate(-90deg);   /* start at top */
-}
-
-.track{
-  /* stroke is also inlined in HTML for safety */
+  pointer-events: none;        /* SVG never intercepts taps */
 }
 
 .progress{
-  /* JS animates stroke-dashoffset; keep smooth on mobile */
-  stroke-dasharray: 691;       /* ~ 2πR with r=110 */
+  /* r=110 => circumference ≈ 691 */
+  stroke-dasharray: 691;
   stroke-dashoffset: 0;
   transition: stroke-dashoffset 0.05s linear;
 }
 
-/* Center the labels inside the circle */
 .wheel-center{
   position: absolute;
   inset: 0;
@@ -45,7 +42,7 @@ h1{
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  pointer-events: none;        /* don’t block taps on controls */
+  pointer-events: none;        /* labels don’t block taps */
 }
 
 #phaseLabel{
@@ -68,12 +65,12 @@ h1{
   color:#9aa0a6; font-size:.9rem; margin-bottom:6px;
 }
 
-/* Colored tic‑tac segments (JS creates .seg elements) */
 .segbar{
   display:flex; gap:4px;
   margin:4px 0 8px;
 }
 .segbar .seg{
+  position: relative;
   height:12px; flex:1; border-radius:6px;
   background:#2b2f36; border:1px solid #262a33; opacity:.9;
 }
@@ -85,12 +82,7 @@ h1{
 .segbar .seg.done[data-type="fast"]{ background:rgba(255,45,85,.85); }
 .segbar .seg.done[data-type="slow"]{ background:rgba(77,163,255,.85); }
 .segbar .seg.done[data-type="cool"]{ background:rgba(52,211,153,.85); }
-.segbar .seg.current::after{
-  content:""; position:absolute; inset:0;
-  background:rgba(255,255,255,.14);
-}
 
-/* Thin overall progress line */
 .overall-bar{
   position:relative; height:6px; border-radius:3px; overflow:hidden;
   background:#151820; border:1px solid #262a33;
@@ -111,6 +103,7 @@ h1{
 /* ===== Controls ===== */
 .controls .row{
   display:flex; justify-content:center; gap:10px; margin:12px 0 14px;
+  position: relative; z-index: 5;     /* stay above the wheel for taps */
 }
 .controls button{
   background:#2b2f36;
@@ -141,6 +134,7 @@ button.active{ background:#ff2d55 !important; color:#fff !important; border-colo
   border-radius:10px;
   text-decoration:none;
   border:1px solid #262a33;
+  position: relative; z-index: 5;     /* clickable above everything */
 }
 .home-btn:hover{ background:#3a3f48 }
 
