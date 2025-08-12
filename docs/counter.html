@@ -2,56 +2,29 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Timer</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Exercise Counter</title>
   <link rel="stylesheet" href="counter.css" />
-  <link rel="manifest" href="/manifest.json" />
-  <meta name="theme-color" content="#ffffff" />
-  <link rel="icon" href="/icons/icon-192.png" type="image/png" />
 </head>
 <body>
+
   <div class="container">
-    <h1>Timer</h1>
-
-    <div id="timer-display">00:00</div>
-
-    <div class="preset-buttons">
-      <button onclick="setPreset(event, 30)">30 sec</button>
-      <button onclick="setPreset(event, 60)">60 sec</button>
-      <button onclick="setPreset(event, 90)">90 sec</button>
-      <button onclick="setPreset(event, 120)">2 min</button>
+    <h1>Exercise Counter</h1>
+    <div id="counterDisplay">0</div>
+    <div class="buttons">
+      <button id="minusBtn">−</button>
+      <button id="plusBtn">+</button>
     </div>
-
-    <div class="control-buttons">
-      <button onclick="startTimer(event)">Start</button>
-      <button onclick="pauseTimer(event)">Pause</button>
-      <button onclick="resetTimer(event)">Reset</button>
-      <button onclick="toggleCustomInput(event)">Custom</button>
-    </div>
-
-    <div id="custom-input" style="display: none;">
-      <input type="number" id="custom-minutes" placeholder="min" min="0" />
-      <input type="number" id="custom-seconds" placeholder="sec" min="0" />
-      <button onclick="setCustomTime()">Set</button>
-    </div>
-
-    <div id="time-up">Time's up!</div>
-
-    <div class="sets">
-      <button class="set-btn" onclick="toggleSet(this)">1</button>
-      <button class="set-btn" onclick="toggleSet(this)">2</button>
-      <button class="set-btn" onclick="toggleSet(this)">3</button>
-      <button class="set-btn" onclick="toggleSet(this)">4</button>
-      <button class="set-btn" onclick="toggleSet(this)">5</button>
-    </div>
-
-    <button class="home-btn" onclick="location.href='/index.html'">Home</button>
-
-    <!-- Sounds -->
-    <audio id="clickSound" src="click.mp3" preload="auto"></audio>
-    <audio id="alarmSound" src="alert.wav" preload="auto"></audio>
+    <a href="index.html" class="home-btn">Home</a>
   </div>
 
   <script src="counter.js"></script>
+  <script>
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("service-worker.js")
+      .then(reg => console.log("Service Worker registered:", reg))
+      .catch(err => console.error("Service Worker registration failed:", err));
+  }
+  </script>
 </body>
 </html>
