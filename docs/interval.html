@@ -12,7 +12,7 @@
 
     <!-- Wheel -->
     <div class="wheel-wrap">
-      <svg class="wheel" viewBox="0 0 260 260">
+      <svg class="wheel" viewBox="0 0 260 260" aria-hidden="true">
         <circle class="track" cx="130" cy="130" r="110"></circle>
         <circle class="progress" cx="130" cy="130" r="110"></circle>
       </svg>
@@ -22,15 +22,26 @@
       </div>
     </div>
 
-    <!-- Overall progress bar -->
+    <!-- Overall progress (segmented + thin fill) -->
     <div class="overall">
       <div class="overall-top">
         <span>Progress</span>
         <span id="overallPct">0%</span>
       </div>
+
+      <!-- Segmented bar (built by JS from plan) -->
+      <div id="segBar" class="segbar"></div>
+
+      <!-- Thin progress line across segments -->
       <div class="overall-bar">
         <div id="overall-fill"></div>
-        <div id="overall-ticks" class="overall-ticks"></div>
+      </div>
+
+      <!-- Info line -->
+      <div class="overall-info">
+        <div><small>Since start</small><div id="sinceStart">0:00</div></div>
+        <div><small>Next</small><div id="nextPhase">—</div></div>
+        <div><small>Time left</small><div id="timeLeft">0:00</div></div>
       </div>
     </div>
 
@@ -43,10 +54,9 @@
       </div>
     </div>
 
-    <!-- Status -->
-    <div id="statusMsg" class="status"></div>
+    <div id="statusMsg" class="status" aria-live="polite"></div>
 
-    <!-- Sound -->
+    <!-- Sounds -->
     <audio id="alarmSound" src="alert.wav" preload="auto"></audio>
   </div>
 
