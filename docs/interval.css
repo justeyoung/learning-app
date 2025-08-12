@@ -1,0 +1,101 @@
+:root{
+  --bg:#f2f2f2;
+  --fg:#333;
+  --muted:#bbb;
+  --btn:#ccc;
+  --active:#e0002b;
+  --track:#e8e8e8;
+
+  /* phase colors */
+  --warm:#ff8a00;   /* orange */
+  --fast:#ff2d55;   /* red/pink */
+  --slow:#367cff;   /* blue */
+  --cool:#1bb36b;   /* green */
+}
+
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--fg);font-family:Arial,Helvetica,sans-serif}
+.container{
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 20px 14px;
+  text-align: center;
+}
+
+h1{
+  font-size:1.25rem;
+  margin:6px 0 12px;
+}
+
+.wheel-wrap{
+  position: relative;
+  width: 260px;
+  height: 260px;
+  margin: 8px auto 12px;
+}
+
+.wheel{width:100%;height:100%;transform: rotate(-90deg);}
+.track{
+  fill:none;
+  stroke: var(--track);
+  stroke-width: 16;
+}
+.progress{
+  fill:none;
+  stroke: var(--fast);
+  stroke-width: 16;
+  stroke-linecap: round;
+  stroke-dasharray: 0 1000; /* will be set by JS */
+  transition: stroke .15s linear;
+}
+
+.wheel-center{
+  position:absolute; inset:0;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+}
+#phaseLabel{
+  font-size:1.05rem; font-weight:600; margin-bottom:4px;
+}
+#timeLabel{
+  font-size:2.4rem; font-weight:700; letter-spacing:0.5px;
+}
+
+.controls{margin-top:6px}
+.controls .row{
+  display:flex; justify-content:center; align-items:center; gap:8px; margin:8px 0;
+}
+.controls .row.small{
+  gap:8px; font-size:.9rem;
+}
+.controls label{opacity:.8}
+.controls select{
+  padding:6px 8px; border:1px solid #ddd; border-radius:6px; background:#fff; color:var(--fg);
+}
+
+button{
+  padding:6px 8px;
+  min-width:72px;
+  font-size:.85rem;
+  border:0;
+  border-radius:6px;
+  background:var(--btn);
+  color:#fff;
+  cursor:pointer;
+  transition: background-color .2s;
+}
+button:active{transform: translateY(1px);}
+button.active{background: var(--active) !important; color:#fff !important; will-change: background-color;}
+
+.status{
+  min-height: 20px;
+  font-size:.9rem;
+  color:#666;
+  margin-top:6px;
+}
+
+/* tiny screens */
+@media (max-width:380px){
+  .wheel-wrap{width:220px;height:220px}
+  #timeLabel{font-size:2rem}
+  button{min-width:66px;padding:6px}
+}
