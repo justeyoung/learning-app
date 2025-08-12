@@ -2,28 +2,30 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Interval Walking</title>
+  <!-- Night mode global styles -->
   <link rel="stylesheet" href="style.css?v=9" />
+  <!-- Interval-specific styles -->
   <link rel="stylesheet" href="interval.css?v=9" />
-  
 </head>
 <body>
-
   <div class="container">
     <h1>Japanese Interval Walking</h1>
 
     <div class="timewheel">
       <svg viewBox="0 0 36 36" class="circular-chart">
         <path class="circle-bg"
-          d="M18 2.0845
-             a 15.9155 15.9155 0 0 1 0 31.831
-             a 15.9155 15.9155 0 0 1 0 -31.831"/>
+              fill="none" stroke="#333" stroke-width="2.8"
+              d="M18 2.0845
+                 a 15.9155 15.9155 0 0 1 0 31.831
+                 a 15.9155 15.9155 0 0 1 0 -31.831" />
         <path class="circle"
-          stroke-dasharray="0, 100"
-          d="M18 2.0845
-             a 15.9155 15.9155 0 0 1 0 31.831
-             a 15.9155 15.9155 0 0 1 0 -31.831"/>
+              fill="none" stroke="#00bcd4" stroke-width="2.8" stroke-linecap="round"
+              stroke-dasharray="0, 100"
+              d="M18 2.0845
+                 a 15.9155 15.9155 0 0 1 0 31.831
+                 a 15.9155 15.9155 0 0 1 0 -31.831" />
       </svg>
       <div class="timer-text" id="time">03:00</div>
     </div>
@@ -34,26 +36,14 @@
       <button id="resetBtn">Reset</button>
     </div>
 
-    <div class="segbar">
-      <div class="seg" data-type="warm"></div>
-      <div class="seg" data-type="fast"></div>
-      <div class="seg" data-type="slow"></div>
-      <div class="seg" data-type="cool"></div>
-    </div>
-
     <a href="index.html" class="home-btn">Home</a>
   </div>
 
-  <audio id="beep" src="docs/alert.wav"></audio>
-  <audio id="click" src="docs/click.mp3"></audio>
-
   <script src="interval.js"></script>
   <script>
-  if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("service-worker.js")
-      .then(reg => console.log("Service Worker registered:", reg))
-      .catch(err => console.error("Service Worker registration failed:", err));
-  }
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("service-worker.js").catch(console.error);
+    }
   </script>
 </body>
 </html>
