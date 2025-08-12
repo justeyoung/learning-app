@@ -3,7 +3,7 @@ const R = 110;
 const CIRC = 2 * Math.PI * R;
 
 /* ---- Config (10s test + countdown beeps that won't pause Spotify) ---- */
-const PHASE_LEN = 10;       // change to 180 for 3 minutes
+const PHASE_LEN = 180;       // change to 180 for 3 minutes
 const COUNTDOWN_LAST_N = 5;
 const BEEP_VOL = 0.12;
 const BEEP_DUR_MS = 120;
