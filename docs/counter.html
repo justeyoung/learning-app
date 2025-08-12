@@ -2,13 +2,12 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Exercise Counter</title>
 
-  <!-- Global night mode first -->
-  <link rel="stylesheet" href="style.css" />
-  <!-- Counter-specific overrides after -->
-  <link rel="stylesheet" href="counter.css" />
+  <!-- Global night mode first, then page-specific overrides -->
+  <link rel="stylesheet" href="style.css?v=16" />
+  <link rel="stylesheet" href="counter.css?v=16" />
 </head>
 <body>
   <div class="counter-app container">
@@ -17,14 +16,14 @@
     <div id="counterDisplay" class="count">0</div>
 
     <div class="btn-row">
-      <button id="minusBtn" class="pill">−</button>
-      <button id="plusBtn" class="pill">+</button>
+      <button id="minusBtn" class="pill" aria-label="Decrease">−</button>
+      <button id="plusBtn"  class="pill" aria-label="Increase">+</button>
     </div>
 
-    <a href="index.html" class="home-btn">Home</a>
+    <a href="./index.html" class="home-btn">Home</a>
   </div>
 
-  <script src="counter.js"></script>
+  <script src="counter.js?v=16"></script>
   <script>
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker.register("service-worker.js").catch(console.error);
