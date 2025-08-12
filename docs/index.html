@@ -3,58 +3,13 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Home Page</title>
+  <title>Exercise Tools</title>
   <link rel="stylesheet" href="style.css" />
-  <style>
-    body {
-      background-color: #121212;
-      color: white;
-      font-family: Arial, sans-serif;
-      text-align: center;
-      margin: 0;
-      padding: 0;
-    }
-
-    h1 {
-      font-size: 2rem;
-      margin-top: 20px;
-    }
-
-    #landing {
-      margin-top: 40px;
-    }
-
-    button {
-      background-color: #333;
-      color: white;
-      border: none;
-      padding: 12px 20px;
-      font-size: 1rem;
-      margin: 10px;
-      border-radius: 8px;
-      cursor: pointer;
-      transition: background 0.2s;
-    }
-
-    button:hover {
-      background-color: #555;
-    }
-
-    button:active,
-    button.active {
-      background-color: red !important;
-      color: white !important;
-    }
-
-    .results, .feedback, .question {
-      margin-top: 20px;
-    }
-  </style>
 </head>
 <body>
 
   <div id="landing">
-    <h1>Home Page</h1>
+    <h1>Exercise Tools</h1>
 
     <button id="startBtn">Quiz 1: Eviction 1 to 8</button>
 
@@ -63,7 +18,7 @@
     </a>
 
     <a href="interval.html">
-      <button>Japanese Interval Walking</button>
+      <button>Interval Walking</button>
     </a>
   </div>
 
@@ -81,5 +36,12 @@
   </div>
 
   <script src="script.js"></script>
+  <script>
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("service-worker.js")
+      .then(reg => console.log("Service Worker registered:", reg))
+      .catch(err => console.error("Service Worker registration failed:", err));
+  }
+  </script>
 </body>
 </html>
