@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Interval Walking</title>
+  <link rel="stylesheet" href="interval.css" />
+</head>
+<body>
+  <div class="container">
+    <h1>Interval Walking</h1>
+
+    <!-- Timewheel -->
+    <div class="wheel-wrap">
+      <svg class="wheel" viewBox="0 0 200 200" aria-hidden="true">
+        <!-- Track -->
+        <circle class="track" cx="100" cy="100" r="84" />
+        <!-- Progress -->
+        <circle id="progressArc" class="progress" cx="100" cy="100" r="84" />
+      </svg>
+      <div class="wheel-center">
+        <div id="phaseLabel">Warm‑up</div>
+        <div id="timeLabel">03:00</div>
+      </div>
+    </div>
+
+    <!-- Controls -->
+    <div class="controls">
+      <div class="row">
+        <button onclick="startWorkout(event)">Start</button>
+        <button onclick="pauseWorkout(event)">Pause</button>
+        <button onclick="resetWorkout(event)">Reset</button>
+      </div>
+
+      <div class="row small">
+        <label for="sets">Sets:</label>
+        <select id="sets" onchange="rebuildPlan()">
+          <option value="3">3</option>
+          <option value="4">4</option>
+          <option value="5" selected>5</option>
+        </select>
+        <label for="phaseLen">Len:</label>
+        <select id="phaseLen" onchange="rebuildPlan()">
+          <option value="180" selected>3 min</option>
+          <option value="120">2 min</option>
+          <option value="90">90 sec</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Status -->
+    <div id="statusMsg" class="status" aria-live="polite"></div>
+
+    <!-- Sounds -->
+    <audio id="clickSound" src="click.mp3" preload="auto"></audio>
+    <audio id="alarmSound" src="alert.wav" preload="auto"></audio>
+  </div>
+
+  <script src="interval.js"></script>
+</body>
+</html>
