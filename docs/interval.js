@@ -1,5 +1,4 @@
-// ===== Interval Walking App =====
-const CIRC = 2 * Math.PI * 110; // circumference of wheel (110 = radius in SVG)
+const CIRC = 2 * Math.PI * 110; // circumference of wheel
 
 let plan = [];
 let stepIndex = 0;
@@ -8,7 +7,6 @@ let startTimestamp = null;
 let elapsedBeforePause = 0;
 let animationFrameId = null;
 
-// DOM shortcuts
 const phaseLabel = () => document.getElementById("phaseLabel");
 const timeLabel = () => document.getElementById("timeLabel");
 const statusMsg = () => document.getElementById("statusMsg");
@@ -23,17 +21,11 @@ function format(sec) {
 function setPhaseUI(phase) {
   phaseLabel().textContent = phase.name;
   document.documentElement.style.setProperty("--fast", phase.color);
-  drawTime(phase.secs, phase.secs, 0);
+  timeLabel().textContent = format(phase.secs);
+  progressArc().style.strokeDasharray = CIRC;
+  progressArc().style.strokeDashoffset = 0;
 }
 
-function drawTime(remaining, total, elapsed) {
-  timeLabel().textContent = format(remaining);
-  const ratio = elapsed / total;
-  const dash = CIRC * ratio;
-  progressArc().setAttribute("stroke-dasharray", `${dash} ${CIRC - dash}`);
-}
-
-// ===== Workout Control =====
 function buildPlan() {
   plan = [
     { name: "Warm-up", secs: 180, color: "var(--warm)" },
@@ -51,23 +43,20 @@ function buildPlan() {
 
 function startWorkout() {
   if (!workoutActive) {
-    // Starting a new workout or resuming from pause
     workoutActive = true;
     document.getElementById("startBtn").classList.add("active");
     document.getElementById("pauseBtn").classList.remove("active");
     statusMsg().textContent = "";
 
     if (startTimestamp === null) {
-      // brand new phase
       startTimestamp = Date.now();
       elapsedBeforePause = 0;
       setPhaseUI(plan[stepIndex]);
     } else {
-      // resuming from pause
       startTimestamp = Date.now() - elapsedBeforePause * 1000;
     }
 
-    requestAnimationFrame(updateFrame);
+    animationFrameId = requestAnimationFrame(updateFrame);
   }
 }
 
@@ -77,7 +66,11 @@ function updateFrame() {
   const elapsed = (now - startTimestamp) / 1000;
   const remaining = Math.max(current.secs - elapsed, 0);
 
-  drawTime(Math.ceil(remaining), current.secs, elapsed);
+  timeLabel().textContent = format(Math.ceil(remaining));
+
+  // Progress arc animation
+  const ratio = elapsed / current.secs;
+  progressArc().style.strokeDashoffset = -CIRC * ratio;
 
   if (remaining <= 0) {
     playAlarm();
@@ -94,8 +87,8 @@ function updateFrame() {
     startTimestamp = null;
     elapsedBeforePause = 0;
     setPhaseUI(plan[stepIndex]);
-    requestAnimationFrame(updateFrame);
-  } else {
+    startWorkout();
+  } else if (workoutActive) {
     animationFrameId = requestAnimationFrame(updateFrame);
   }
 }
@@ -127,17 +120,16 @@ function clearControlHighlights() {
   );
 }
 
-// ===== Sound & Vibration =====
 function playAlarm() {
   const audio = document.getElementById("alarmSound");
   audio.currentTime = 0;
   audio.play().catch(() => {});
 }
+
 function vibrate(pattern) {
   if (navigator.vibrate) navigator.vibrate(pattern);
 }
 
-// ===== Init =====
 document.addEventListener("DOMContentLoaded", () => {
   buildPlan();
   setPhaseUI(plan[0]);
