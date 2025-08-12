@@ -1,65 +1,121 @@
-/* Scope everything so global styles can't disturb layout */
-.counter-app {
+/* Page wrapper */
+.counter-page{
   max-width: 520px;
   margin: 0 auto;
-  padding: 24px 16px;
+  padding: 18px 16px 28px;
   text-align: center;
+  color: #fff;
 }
 
-/* Ensure dark background even if style.css failed to load */
-.counter-app, .counter-app body { background-color: #111; color: #fff; }
-
-.counter-app h1 {
+/* Headings */
+.section-title{
   font-size: 1.4rem;
-  margin: 6px 0 14px;
+  letter-spacing: .06em;
+  margin: 8px 0 12px;
 }
 
-.count {
+/* Time display */
+.time-display{
   font-size: 5rem;
   font-weight: 800;
-  margin: 10px 0 18px;
-  letter-spacing: 1px;
+  letter-spacing: .06em;
+  margin: 8px 0 14px;
 }
 
-.btn-row {
-  display: flex;
-  justify-content: center;
-  gap: 14px;
-  margin-bottom: 18px;
-}
+/* Rows */
+.row{ display:flex; gap:12px; margin:10px 0; }
+.row.center{ justify-content:center; }
+.presets, .controls{ justify-content:center; flex-wrap:wrap; }
 
-/* iOS/Safari button reset + our pill style */
-.pill {
-  -webkit-appearance: none;
-  appearance: none;
-  box-shadow: none;
-  background: #1f2430;
+/* Buttons (grey by default) */
+.btn{
+  background: #3a3a3a;
   color: #fff;
-  border: 1px solid #2a2f3a;
-  border-radius: 14px;
-  padding: 14px 22px;
-  min-width: 88px;
-  font-size: 1.6rem;
+  border: none;
+  padding: 12px 18px;
+  border-radius: 12px;
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: .02em;
+  cursor: pointer;
+  transition: background .15s, transform .05s;
+}
+.btn:hover{ filter: brightness(1.1); }
+.btn:active{ transform: translateY(1px); }
+
+/* Selected state (red bg, white text) */
+.btn.active{
+  background: #ff2d55 !important;
+  color: #fff !important;
+}
+
+/* Presets fit on one line on phones */
+.presets .btn{
+  min-width: 110px;
+  padding: 12px 10px;    /* tighter left/right so all 4 fit */
+}
+
+/* Controls row (three buttons) */
+.controls .btn{
+  min-width: 110px;
+}
+
+/* Custom button centered */
+.custom{
+  min-width: 140px;
+}
+
+/* Time's up */
+.times-up{
+  color: salmon;
+  font-size: 1rem;
+  margin: 10px 0 6px;
+  min-height: 1.2em; /* reserve space to avoid layout jump */
+}
+
+/* Sets: black by default; red when active */
+.sets{
+  justify-content:center;
+  gap: 6px;            /* tight so 1–5 stay on one line */
+  flex-wrap: nowrap;
+  margin-top: 6px;
+}
+.set-btn{
+  -webkit-appearance:none; appearance:none;
+  background: #000;
+  color: #fff;
+  border: 1px solid #222;
+  border-radius: 10px;
+  padding: 6px 8px;   /* compact */
+  min-width: 46px;
+  font-size: 1rem;
   font-weight: 700;
   cursor: pointer;
   transition: background .15s, transform .05s;
 }
-.pill:hover  { background: #2a3040; }
-.pill:active { transform: translateY(1px); }
-
-.home-btn {
-  display: inline-block;
-  background: #2b2f36;
+.set-btn:hover{ filter: brightness(1.15); }
+.set-btn:active{ transform: translateY(1px); }
+.set-btn.active{
+  background: #ff2d55;
   color: #fff;
-  padding: 10px 16px;
-  border-radius: 10px;
-  text-decoration: none;
-  border: 1px solid #262a33;
+  border-color: #ff2d55;
 }
-.home-btn:hover { background: #3a3f48; }
 
-/* small devices */
-@media (max-width: 380px) {
-  .count { font-size: 4rem; }
-  .pill  { min-width: 76px; padding: 12px 18px; font-size: 1.4rem; }
+/* Home button (consistent style) */
+.home-btn{
+  display:inline-block;
+  background:#2b2f36;
+  color:#fff;
+  padding:10px 16px;
+  border-radius:10px;
+  text-decoration:none;
+  border:1px solid #262a33;
+}
+.home-btn:hover{ background:#3a3f48 }
+
+/* Smaller phones */
+@media (max-width: 380px){
+  .time-display{ font-size: 4rem; }
+  .presets .btn, .controls .btn{ min-width: 96px; padding: 10px 8px; }
+  .set-btn{ min-width: 40px; font-size: .95rem; padding: 6px 6px; }
 }
