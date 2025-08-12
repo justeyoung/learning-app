@@ -27,17 +27,18 @@ function setPhaseUI(phase) {
 }
 
 function buildPlan() {
+  const testTime = 5; // 5 seconds per phase for testing
   plan = [
-    { name: "Warm-up", secs: 180, color: "var(--warm)" },
-    { name: "Fast", secs: 180, color: "var(--fast)" },
-    { name: "Slow", secs: 180, color: "var(--slow)" },
-    { name: "Fast", secs: 180, color: "var(--fast)" },
-    { name: "Slow", secs: 180, color: "var(--slow)" },
-    { name: "Fast", secs: 180, color: "var(--fast)" },
-    { name: "Slow", secs: 180, color: "var(--slow)" },
-    { name: "Fast", secs: 180, color: "var(--fast)" },
-    { name: "Slow", secs: 180, color: "var(--slow)" },
-    { name: "Cool-down", secs: 180, color: "var(--cool)" }
+    { name: "Warm-up", secs: testTime, color: "var(--warm)" },
+    { name: "Fast", secs: testTime, color: "var(--fast)" },
+    { name: "Slow", secs: testTime, color: "var(--slow)" },
+    { name: "Fast", secs: testTime, color: "var(--fast)" },
+    { name: "Slow", secs: testTime, color: "var(--slow)" },
+    { name: "Fast", secs: testTime, color: "var(--fast)" },
+    { name: "Slow", secs: testTime, color: "var(--slow)" },
+    { name: "Fast", secs: testTime, color: "var(--fast)" },
+    { name: "Slow", secs: testTime, color: "var(--slow)" },
+    { name: "Cool-down", secs: testTime, color: "var(--cool)" }
   ];
 }
 
