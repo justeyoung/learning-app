@@ -1,71 +1,86 @@
 :root {
   --bg: #0d0d0f;
   --card:#121216;
-  --text: #f5f5f7;
+  --text:#f5f5f7;
   --muted:#9aa0a6;
 
-  --warm: #ffa043;   /* orange */
-  --fast: #ff2d55;   /* pink/red */
-  --slow: #4da3ff;   /* blue */
-  --cool: #34d399;   /* green */
+  --warm:#ffa043;  /* orange */
+  --fast:#ff2d55;  /* pink/red */
+  --slow:#4da3ff;  /* blue */
+  --cool:#34d399;  /* green */
 
-  --track: #1f232b;
-  --btn: #2b2f36;
+  --track:#1f232b;
+  --btn:#2b2f36;
   --btnHover:#3a3f48;
   --active:#ff2d55;
 }
 
 *{box-sizing:border-box}
 html,body{margin:0;padding:0;background:var(--bg);color:var(--text);
-  font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;}
+  font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
 .container{max-width:480px;margin:0 auto;padding:20px 14px;text-align:center}
-h1{font-size:1.2rem;margin:6px 0 12px;color:var(--text);font-weight:600}
+h1{font-size:1.2rem;margin:6px 0 12px;font-weight:600;color:var(--text)}
 
 /* Wheel */
 .wheel-wrap{position:relative;width:260px;height:260px;margin:8px auto 12px}
 .wheel{width:100%;height:100%;transform:rotate(-90deg)}
 .track{fill:none;stroke:var(--track);stroke-width:16}
 .progress{
-  fill:none; stroke: var(--fast); stroke-width:16; stroke-linecap:round;
-  /* smooth mobile animation via dashoffset */
-  stroke-dasharray: 691; /* ≈ 2πR with R=110 */
+  fill:none; stroke:var(--fast); stroke-width:16; stroke-linecap:round;
+  stroke-dasharray: 691;  /* ≈ 2πR where R=110 */
   stroke-dashoffset: 0;
-  transition: stroke-dashoffset 0.05s linear;
+  transition: stroke-dashoffset 0.05s linear; /* smooth on mobile */
 }
 .wheel-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
 #phaseLabel{font-size:1.05rem;font-weight:700;margin-bottom:4px}
 #timeLabel{font-size:2.4rem;font-weight:800;letter-spacing:.5px}
 
-/* Overall progress bar */
+/* Overall progress (segmented + thin line) */
 .overall{margin:10px 0 6px}
 .overall-top{display:flex;justify-content:space-between;align-items:center;color:var(--muted);font-size:.9rem;margin-bottom:6px}
+
+.segbar{display:flex;gap:4px;margin:4px 0 8px}
+.segbar .seg{
+  height:14px;border-radius:6px;flex:1;opacity:.8;
+  background:#2b2f36;border:1px solid #262a33;position:relative;overflow:hidden
+}
+.segbar .seg[data-type="warm"]{background:rgba(255,160,67,.25); border-color:#5a3d14}
+.segbar .seg[data-type="fast"]{background:rgba(255,45,85,.25);  border-color:#5b1220}
+.segbar .seg[data-type="slow"]{background:rgba(77,163,255,.25);  border-color:#143659}
+.segbar .seg[data-type="cool"]{background:rgba(52,211,153,.25); border-color:#0f3f2d}
+
+.segbar .seg.current::after{
+  content:""; position:absolute; inset:0; background:rgba(255,255,255,.12);
+  animation:pulse 1.2s ease-in-out infinite;
+}
+@keyframes pulse{0%,100%{opacity:.12}50%{opacity:.28}}
+
 .overall-bar{
-  position:relative;height:10px;border-radius:6px;overflow:hidden;
-  background:linear-gradient(180deg,#1b1e24,#151820);
-  border:1px solid #262a33;
+  position:relative;height:6px;border-radius:3px;overflow:hidden;
+  background:#151820;border:1px solid #262a33
 }
 #overall-fill{
-  position:absolute;left:0;top:0;bottom:0;width:0%;
+  position:absolute;inset:0;width:0%;
   background:linear-gradient(90deg,#ff2d55,#ff7a7a);
-  transition: width .1s linear;
+  transition:width .12s linear;
 }
-.overall-ticks{
-  position:absolute;inset:0;pointer-events:none;
+
+.overall-info{
+  display:flex;justify-content:space-between;gap:8px;color:var(--muted);margin-top:6px;font-size:.9rem
 }
-.overall-ticks .tick{
-  position:absolute;top:0;bottom:0;width:2px;background:#3a3f48;opacity:.8;
-}
+.overall-info>div{flex:1}
+.overall-info small{display:block;opacity:.8;margin-bottom:2px}
 
 /* Controls */
 .controls .row{display:flex;justify-content:center;gap:8px;margin:10px 0}
 button{
   padding:8px 10px;min-width:78px;font-size:.9rem;font-weight:600;
   border:1px solid var(--track);border-radius:10px;background:var(--btn);color:var(--text);
-  cursor:pointer;transition:background-color .15s,border-color .15s,transform .05s;
+  cursor:pointer;transition:background-color .15s,border-color .15s,transform .05s
 }
 button:hover{background:var(--btnHover)}
 button:active{transform:translateY(1px) scale(.995)}
-button.active{background:var(--active) !important;color:#fff !important;border-color:transparent}
+button.active{background:var(--active)!important;color:#fff!important;border-color:transparent}
 
 /* Status */
 .status{min-height:20px;font-size:.95rem;color:var(--muted);margin-top:6px}
