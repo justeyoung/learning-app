@@ -5,14 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Japanese Interval Walking</title>
 
-  <!-- Night mode (global) then page-specific -->
-  <link rel="stylesheet" href="style.css?v=12" />
-  <link rel="stylesheet" href="interval.css?v=12" />
-
-  <!-- PWA (optional, keep if you already have it)
-  <link rel="manifest" href="manifest.json" />
-  <meta name="theme-color" content="#121212" />
-  -->
+  <!-- Night mode + page styles (cache-busted) -->
+  <link rel="stylesheet" href="style.css?v=13" />
+  <link rel="stylesheet" href="interval.css?v=13" />
 </head>
 <body>
   <div class="container">
@@ -21,34 +16,32 @@
     <!-- Wheel -->
     <div class="wheel-wrap">
       <svg class="wheel" viewBox="0 0 260 260" aria-hidden="true">
-        <!-- SAFETY: inline fill="none" to avoid black disk if CSS misses -->
+        <!-- SAFETY: fill=none prevents big black disk if CSS misses -->
         <circle class="track" cx="130" cy="130" r="110"
                 fill="none" stroke="#333" stroke-width="16"></circle>
         <circle class="progress" cx="130" cy="130" r="110"
                 fill="none" stroke="#00bcd4" stroke-width="16" stroke-linecap="round"></circle>
       </svg>
+      <!-- Centered labels the JS updates -->
       <div class="wheel-center">
         <div id="phaseLabel">Warm-up</div>
         <div id="timeLabel">03:00</div>
       </div>
     </div>
 
-    <!-- Overall progress + tic-tac segments -->
+    <!-- Overall progress + colored segments -->
     <div class="overall">
       <div class="overall-top">
         <span>Progress</span>
         <span id="overallPct">0%</span>
       </div>
 
-      <!-- JS fills these colored segments (orange/red/blue/green) -->
       <div id="segBar" class="segbar"></div>
 
-      <!-- Thin overall bar -->
       <div class="overall-bar">
         <div id="overall-fill"></div>
       </div>
 
-      <!-- Small info row -->
       <div class="overall-info">
         <div><small>Since start</small><div id="sinceStart">0:00</div></div>
         <div><small>Next</small><div id="nextPhase">—</div></div>
@@ -65,13 +58,13 @@
       </div>
     </div>
 
-    <!-- Status line (salmon text like before) -->
+    <!-- Status line -->
     <div id="statusMsg" class="status" aria-live="polite"></div>
 
     <a href="index.html" class="home-btn">Home</a>
   </div>
 
-  <!-- Your existing JS (already working with these IDs) -->
-  <script src="interval.js?v=12"></script>
+  <!-- Your working JS -->
+  <script src="interval.js?v=13"></script>
 </body>
 </html>
