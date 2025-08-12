@@ -4,6 +4,7 @@ const CIRC = 2 * Math.PI * 110; // circumference of wheel (110 = radius in SVG)
 let plan = [];
 let stepIndex = 0;
 let timer = null;
+let workoutActive = false;
 
 // DOM shortcuts
 const phaseLabel = () => document.getElementById("phaseLabel");
@@ -48,6 +49,12 @@ function buildPlan() {
 }
 
 function startWorkout() {
+  // If workout is not running, start from the beginning
+  if (!workoutActive) {
+    stepIndex = 0;
+    workoutActive = true;
+  }
+
   if (timer) clearInterval(timer);
   clearControlHighlights();
   document.getElementById("startBtn").classList.add("active");
@@ -73,6 +80,7 @@ function startWorkout() {
       stepIndex++;
       if (stepIndex >= plan.length) {
         statusMsg().textContent = "Workout complete!";
+        workoutActive = false;
         clearControlHighlights();
         return;
       }
@@ -94,6 +102,7 @@ function resetWorkout() {
   clearInterval(timer);
   timer = null;
   stepIndex = 0;
+  workoutActive = false;
   clearControlHighlights();
   statusMsg().textContent = "Reset complete";
   setPhaseUI(plan[0]);
