@@ -18,7 +18,19 @@
       </svg>
       <div class="wheel-center">
         <div id="phaseLabel">Warm-up</div>
-        <div id="timeLabel">03:00</div>
+        <div id="timeLabel">00:05</div>
+      </div>
+    </div>
+
+    <!-- Overall progress bar -->
+    <div class="overall">
+      <div class="overall-top">
+        <span>Progress</span>
+        <span id="overallPct">0%</span>
+      </div>
+      <div class="overall-bar">
+        <div id="overall-fill"></div>
+        <div id="overall-ticks" class="overall-ticks"></div>
       </div>
     </div>
 
@@ -34,8 +46,8 @@
     <!-- Status -->
     <div id="statusMsg" class="status"></div>
 
-    <!-- Alarm sound -->
-    <audio id="alarmSound" src="doc/alert.wav" preload="auto"></audio>
+    <!-- Sound -->
+    <audio id="alarmSound" src="alert.wav" preload="auto"></audio>
   </div>
 
   <script src="interval.js"></script>
