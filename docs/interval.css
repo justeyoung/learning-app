@@ -41,6 +41,7 @@ h1{
   position:relative;
   width:260px; height:260px;
   margin:10px auto 14px;
+  z-index: 1; /* sits under controls */
 }
 .wheel{
   width:100%; height:100%;
@@ -65,6 +66,7 @@ h1{
 .wheel-center{
   position:absolute; inset:0;
   display:flex; flex-direction:column; align-items:center; justify-content:center;
+  pointer-events: none; /* labels never block taps */
 }
 #phaseLabel{
   font-size:1.05rem;
@@ -77,16 +79,18 @@ h1{
   letter-spacing:.5px;
 }
 
-/* ========= OVERALL PROGRESS (title, segments, thin bar, info) ========= */
+/* ========= OVERALL PROGRESS ========= */
 .overall{
   margin:10px 0 6px;
+  position: relative;
+  z-index: 1;
 }
 .overall-top{
   display:flex; justify-content:space-between; align-items:center;
   color:var(--muted); font-size:.9rem; margin-bottom:6px;
 }
 
-/* Segmented bar (colored by phase) */
+/* Segmented bar */
 .segbar{
   display:flex; gap:4px;
   margin:4px 0 8px;
@@ -101,7 +105,7 @@ h1{
 .segbar .seg[data-type="slow"]{ background:rgba(77,163,255,.25);  border-color:#143659; }
 .segbar .seg[data-type="cool"]{ background:rgba(52,211,153,.25);  border-color:#0f3f2d; }
 
-/* Completed segments — BRIGHT (≈65%) */
+/* Completed segments — BRIGHT (~65%) */
 .segbar .seg.done[data-type="warm"]{ background:rgba(255,160,67,.85); }
 .segbar .seg.done[data-type="fast"]{ background:rgba(255,45,85,.85); }
 .segbar .seg.done[data-type="slow"]{ background:rgba(77,163,255,.85); }
@@ -135,6 +139,10 @@ h1{
 .overall-info small{ display:block; opacity:.8; margin-bottom:2px; }
 
 /* ========= CONTROLS ========= */
+.controls{
+  position: relative;
+  z-index: 5; /* ensure buttons are always tappable */
+}
 .controls .row{
   display:flex; justify-content:center; align-items:center;
   gap:8px; margin:12px 0 6px;
@@ -159,7 +167,7 @@ button.active{ background:var(--active) !important; color:#fff !important; borde
   margin-top:6px;
 }
 
-/* ========= RESPONSIVE (small phones) ========= */
+/* ========= RESPONSIVE ========= */
 @media (max-width:380px){
   .wheel-wrap{ width:220px; height:220px; }
   #timeLabel{ font-size:2rem; }
