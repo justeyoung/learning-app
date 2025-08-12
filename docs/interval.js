@@ -1,148 +1,125 @@
-// ======= State & Plan =======
-let timer = null;
-let secondsLeft = 0;
+// ===== Interval Walking App =====
+const CIRC = 2 * Math.PI * 110; // circumference of wheel (110 = radius in SVG)
+
 let plan = [];
 let stepIndex = 0;
+let timer = null;
 
-// SVG wheel values
-const R = 84;                        // radius in SVG (matches CSS)
-const CIRC = 2 * Math.PI * R;        // circumference
+// DOM shortcuts
+const phaseLabel = () => document.getElementById("phaseLabel");
+const timeLabel = () => document.getElementById("timeLabel");
+const statusMsg = () => document.getElementById("statusMsg");
+const progressArc = () => document.querySelector(".progress");
 
-// Elements
-const timeLabel = () => document.getElementById('timeLabel');
-const phaseLabel = () => document.getElementById('phaseLabel');
-const progressArc = () => document.getElementById('progressArc');
-const statusMsg = () => document.getElementById('statusMsg');
-
-function playClick(){
-  const a = document.getElementById('clickSound');
-  a.currentTime = 0; a.play().catch(()=>{});
-}
-function playAlarm(){
-  const a = document.getElementById('alarmSound');
-  a.currentTime = 0; a.play().catch(()=>{});
-}
-function vibrate(pattern){ if (navigator.vibrate) navigator.vibrate(pattern); }
-
-// Build workout plan based on UI
-function rebuildPlan(){
-  const sets = parseInt(document.getElementById('sets').value, 10) || 5;
-  const len  = parseInt(document.getElementById('phaseLen').value, 10) || 180;
-
-  plan = [];
-  plan.push({label:'Warm‑up', type:'warm', color:getPhaseColor('warm'), secs:len});   // warm-up
-
-  for(let i=0;i<sets;i++){
-    plan.push({label:`Fast ${i+1}`, type:'fast', color:getPhaseColor('fast'), secs:len});
-    plan.push({label:`Slow ${i+1}`, type:'slow', color:getPhaseColor('slow'), secs:len});
-  }
-
-  plan.push({label:'Cool‑down', type:'cool', color:getPhaseColor('cool'), secs:len}); // cool-down
-
-  // reset view to first step
-  stepIndex = 0;
-  secondsLeft = plan[0].secs;
-  setPhaseUI(plan[0]);
-  drawTime(secondsLeft, plan[0].secs);
-  statusMsg().textContent = `Plan: ${sets} sets • ${Math.round(len/60)}‑min phases`;
-  // clear button active states
-  clearControlHighlights();
+function format(sec) {
+  const m = Math.floor(sec / 60).toString().padStart(2, '0');
+  const s = Math.floor(sec % 60).toString().padStart(2, '0');
+  return `${m}:${s}`;
 }
 
-// Helpers
-function getPhaseColor(type){
-  switch(type){
-    case 'warm': return getComputedStyle(document.documentElement).getPropertyValue('--warm').trim();
-    case 'fast': return getComputedStyle(document.documentElement).getPropertyValue('--fast').trim();
-    case 'slow': return getComputedStyle(document.documentElement).getPropertyValue('--slow').trim();
-    case 'cool': return getComputedStyle(document.documentElement).getPropertyValue('--cool').trim();
-    default: return '#000';
-  }
+function setPhaseUI(phase) {
+  phaseLabel().textContent = phase.name;
+  document.documentElement.style.setProperty("--fast", phase.color);
+  drawTime(phase.secs, phase.secs);
 }
 
-function setPhaseUI(step){
-  phaseLabel().textContent = step.label;
-  progressArc().style.stroke = step.color;
-}
-
-function format(secs){
-  const m = Math.floor(secs/60);
-  const s = secs%60;
-  return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
-}
-
-function drawTime(remaining, total){
+function drawTime(remaining, total, elapsed = null) {
+  if (elapsed === null) elapsed = total - remaining;
   timeLabel().textContent = format(remaining);
-  const ratio = 1 - (remaining/total);
+  const ratio = elapsed / total;
   const dash = CIRC * ratio;
-  progressArc().setAttribute('stroke-dasharray', `${dash} ${CIRC - dash}`);
+  progressArc().setAttribute("stroke-dasharray", `${dash} ${CIRC - dash}`);
 }
 
-// ======= Controls =======
-function startWorkout(ev){
-  playClick();
-  clearInterval(timer);
-  clearControlHighlights(); highlightButton(ev);
+// ===== Workout Control =====
+function buildPlan() {
+  plan = [
+    { name: "Warm-up", secs: 180, color: "var(--warm)" },
+    { name: "Fast", secs: 180, color: "var(--fast)" },
+    { name: "Slow", secs: 180, color: "var(--slow)" },
+    { name: "Fast", secs: 180, color: "var(--fast)" },
+    { name: "Slow", secs: 180, color: "var(--slow)" },
+    { name: "Fast", secs: 180, color: "var(--fast)" },
+    { name: "Slow", secs: 180, color: "var(--slow)" },
+    { name: "Fast", secs: 180, color: "var(--fast)" },
+    { name: "Slow", secs: 180, color: "var(--slow)" },
+    { name: "Cool-down", secs: 180, color: "var(--cool)" }
+  ];
+}
+
+function startWorkout() {
+  if (timer) clearInterval(timer);
+  clearControlHighlights();
+  document.getElementById("startBtn").classList.add("active");
+  statusMsg().textContent = "";
 
   const current = plan[stepIndex];
-  // (re)initialize seconds if at boundary
-  if (secondsLeft <= 0 || secondsLeft > current.secs) secondsLeft = current.secs;
+  setPhaseUI(current);
+
+  const startTime = Date.now();
 
   timer = setInterval(() => {
-    secondsLeft--;
-    drawTime(secondsLeft, current.secs);
+    const elapsedMs = Date.now() - startTime;
+    const elapsed = elapsedMs / 1000;
+    const remaining = Math.max(current.secs - elapsed, 0);
 
-    if (secondsLeft <= 0){
-      // phase end
-      playAlarm(); vibrate([300,200,300]);
+    drawTime(Math.ceil(remaining), current.secs, elapsed);
+
+    if (remaining <= 0) {
+      clearInterval(timer);
+      playAlarm();
+      vibrate([300, 200, 300]);
+
       stepIndex++;
-      if (stepIndex >= plan.length){
-        clearInterval(timer);
+      if (stepIndex >= plan.length) {
         statusMsg().textContent = "Workout complete!";
         clearControlHighlights();
         return;
       }
-      const next = plan[stepIndex];
-      setPhaseUI(next);
-      secondsLeft = next.secs;
-      drawTime(secondsLeft, next.secs);
-      statusMsg().textContent = `${next.label}`;
+      startWorkout(); // start next phase
     }
-  }, 1000);
+  }, 100);
 }
 
-function pauseWorkout(ev){
-  playClick();
-  clearInterval(timer);
-  clearControlHighlights(); highlightButton(ev);
-  statusMsg().textContent = "Paused";
+function pauseWorkout() {
+  if (timer) {
+    clearInterval(timer);
+    timer = null;
+    clearControlHighlights();
+    document.getElementById("pauseBtn").classList.add("active");
+  }
 }
 
-function resetWorkout(ev){
-  playClick();
+function resetWorkout() {
   clearInterval(timer);
-  clearControlHighlights(); highlightButton(ev);
+  timer = null;
   stepIndex = 0;
-  secondsLeft = plan[0].secs;
+  clearControlHighlights();
+  statusMsg().textContent = "Reset complete";
   setPhaseUI(plan[0]);
-  drawTime(secondsLeft, plan[0].secs);
-  statusMsg().textContent = "Reset";
 }
 
-// ======= UI misc =======
-function clearControlHighlights(){
-  document.querySelectorAll('.controls .row button').forEach(b=>b.classList.remove('active'));
-}
-function highlightButton(ev){
-  if (!ev || !ev.target) return;
-  // ensure repaint on some Android devices
-  ev.target.classList.remove('active');
-  requestAnimationFrame(()=> ev.target.classList.add('active'));
+function clearControlHighlights() {
+  document.querySelectorAll(".controls button").forEach(btn =>
+    btn.classList.remove("active")
+  );
 }
 
-// init
-document.addEventListener('DOMContentLoaded', () => {
-  // prime SVG circle length (visual)
-  progressArc().setAttribute('stroke-dasharray', `0 ${CIRC}`);
-  rebuildPlan();
+// ===== Sound & Vibration =====
+function playAlarm() {
+  const audio = document.getElementById("alarmSound");
+  audio.currentTime = 0;
+  audio.play().catch(() => {});
+}
+function vibrate(pattern) {
+  if (navigator.vibrate) navigator.vibrate(pattern);
+}
+
+// ===== Init =====
+document.addEventListener("DOMContentLoaded", () => {
+  buildPlan();
+  setPhaseUI(plan[0]);
+  document.getElementById("startBtn").addEventListener("click", startWorkout);
+  document.getElementById("pauseBtn").addEventListener("click", pauseWorkout);
+  document.getElementById("resetBtn").addEventListener("click", resetWorkout);
 });
