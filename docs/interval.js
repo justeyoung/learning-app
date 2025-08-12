@@ -27,7 +27,7 @@ function setPhaseUI(phase) {
 }
 
 function buildPlan() {
-  const testTime = 5; // 5 seconds per phase for testing
+  const testTime = 5; // 5 seconds for testing
   plan = [
     { name: "Warm-up", secs: testTime, color: "var(--warm)" },
     { name: "Fast", secs: testTime, color: "var(--fast)" },
@@ -43,22 +43,20 @@ function buildPlan() {
 }
 
 function startWorkout() {
-  if (!workoutActive) {
-    workoutActive = true;
-    document.getElementById("startBtn").classList.add("active");
-    document.getElementById("pauseBtn").classList.remove("active");
-    statusMsg().textContent = "";
+  workoutActive = true;
+  document.getElementById("startBtn").classList.add("active");
+  document.getElementById("pauseBtn").classList.remove("active");
+  statusMsg().textContent = "";
 
-    if (startTimestamp === null) {
-      startTimestamp = Date.now();
-      elapsedBeforePause = 0;
-      setPhaseUI(plan[stepIndex]);
-    } else {
-      startTimestamp = Date.now() - elapsedBeforePause * 1000;
-    }
-
-    animationFrameId = requestAnimationFrame(updateFrame);
+  if (startTimestamp === null) {
+    startTimestamp = Date.now();
+    elapsedBeforePause = 0;
+    setPhaseUI(plan[stepIndex]);
+  } else {
+    startTimestamp = Date.now() - elapsedBeforePause * 1000;
   }
+
+  animationFrameId = requestAnimationFrame(updateFrame);
 }
 
 function updateFrame() {
@@ -68,8 +66,6 @@ function updateFrame() {
   const remaining = Math.max(current.secs - elapsed, 0);
 
   timeLabel().textContent = format(Math.ceil(remaining));
-
-  // Progress arc animation
   const ratio = elapsed / current.secs;
   progressArc().style.strokeDashoffset = -CIRC * ratio;
 
@@ -85,10 +81,11 @@ function updateFrame() {
       elapsedBeforePause = 0;
       return;
     }
-    startTimestamp = null;
+    // Move to next phase immediately
+    startTimestamp = Date.now();
     elapsedBeforePause = 0;
     setPhaseUI(plan[stepIndex]);
-    startWorkout();
+    animationFrameId = requestAnimationFrame(updateFrame);
   } else if (workoutActive) {
     animationFrameId = requestAnimationFrame(updateFrame);
   }
@@ -134,7 +131,9 @@ function vibrate(pattern) {
 document.addEventListener("DOMContentLoaded", () => {
   buildPlan();
   setPhaseUI(plan[0]);
-  document.getElementById("startBtn").addEventListener("click", startWorkout);
+  document.getElementById("startBtn").addEventListener("click", () => {
+    if (!workoutActive) startWorkout();
+  });
   document.getElementById("pauseBtn").addEventListener("click", pauseWorkout);
   document.getElementById("resetBtn").addEventListener("click", resetWorkout);
 });
