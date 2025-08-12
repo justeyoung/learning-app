@@ -5,6 +5,51 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Home Page</title>
   <link rel="stylesheet" href="style.css" />
+  <style>
+    body {
+      background-color: #121212;
+      color: white;
+      font-family: Arial, sans-serif;
+      text-align: center;
+      margin: 0;
+      padding: 0;
+    }
+
+    h1 {
+      font-size: 2rem;
+      margin-top: 20px;
+    }
+
+    #landing {
+      margin-top: 40px;
+    }
+
+    button {
+      background-color: #333;
+      color: white;
+      border: none;
+      padding: 12px 20px;
+      font-size: 1rem;
+      margin: 10px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    button:hover {
+      background-color: #555;
+    }
+
+    button:active,
+    button.active {
+      background-color: red !important;
+      color: white !important;
+    }
+
+    .results, .feedback, .question {
+      margin-top: 20px;
+    }
+  </style>
 </head>
 <body>
 
@@ -17,7 +62,6 @@
       <button>Exercise Counter</button>
     </a>
 
-    <!-- NEW BUTTON for Interval Walking App -->
     <a href="interval.html">
       <button>Japanese Interval Walking</button>
     </a>
