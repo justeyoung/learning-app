@@ -1,52 +1,55 @@
-const CACHE_NAME = "exercise-tools-v1";
+// Service Worker for "Exercise Tools" (index + counter + interval)
+const CACHE_NAME = "exercise-tools-v2";  // bump this when you change files
+
+// List every file your app needs offline
 const FILES_TO_CACHE = [
+  // entry points
   "index.html",
   "counter.html",
   "interval.html",
+
+  // shared
+  "manifest.json",
+  "service-worker.js",
+
+  // styles
   "style.css",
   "counter.css",
   "interval.css",
+
+  // scripts
   "script.js",
   "counter.js",
   "interval.js",
-  "docs/icon-192.png",
-  "docs/icon-512.png",
+
+  // sounds & icons (keep even if you use Web Audio; good fallback)
   "docs/click.mp3",
   "docs/alert.wav",
-  "manifest.json"
+  "docs/icon-192.png",
+  "docs/icon-512.png"
 ];
 
-// Install service worker and cache files
-self.addEventListener("install", event => {
+// Install: cache everything up-front
+self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => {
-      return cache.addAll(FILES_TO_CACHE);
-    })
+    caches.open(CACHE_NAME).then((cache) => cache.addAll(FILES_TO_CACHE))
   );
   self.skipWaiting();
 });
 
-// Activate and clean up old caches
-self.addEventListener("activate", event => {
+// Activate: clean old caches
+self.addEventListener("activate", (event) => {
   event.waitUntil(
-    caches.keys().then(keyList =>
-      Promise.all(
-        keyList.map(key => {
-          if (key !== CACHE_NAME) {
-            return caches.delete(key);
-          }
-        })
-      )
+    caches.keys().then((keys) =>
+      Promise.all(keys.map((k) => (k === CACHE_NAME ? null : caches.delete(k))))
     )
   );
   self.clients.claim();
 });
 
-// Fetch files from cache first, then network
-self.addEventListener("fetch", event => {
+// Fetch: cache-first, then network (simple & reliable offline)
+self.addEventListener("fetch", (event) => {
   event.respondWith(
-    caches.match(event.request).then(response => {
-      return response || fetch(event.request);
-    })
+    caches.match(event.request).then((cached) => cached || fetch(event.request))
   );
 });
