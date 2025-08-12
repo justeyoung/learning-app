@@ -3,8 +3,10 @@ const CIRC = 2 * Math.PI * 110; // circumference of wheel (110 = radius in SVG)
 
 let plan = [];
 let stepIndex = 0;
-let timer = null;
 let workoutActive = false;
+let startTimestamp = null;
+let elapsedBeforePause = 0;
+let animationFrameId = null;
 
 // DOM shortcuts
 const phaseLabel = () => document.getElementById("phaseLabel");
@@ -21,11 +23,10 @@ function format(sec) {
 function setPhaseUI(phase) {
   phaseLabel().textContent = phase.name;
   document.documentElement.style.setProperty("--fast", phase.color);
-  drawTime(phase.secs, phase.secs);
+  drawTime(phase.secs, phase.secs, 0);
 }
 
-function drawTime(remaining, total, elapsed = null) {
-  if (elapsed === null) elapsed = total - remaining;
+function drawTime(remaining, total, elapsed) {
   timeLabel().textContent = format(remaining);
   const ratio = elapsed / total;
   const dash = CIRC * ratio;
@@ -49,60 +50,72 @@ function buildPlan() {
 }
 
 function startWorkout() {
-  // If workout is not running, start from the beginning
   if (!workoutActive) {
-    stepIndex = 0;
+    // Starting a new workout or resuming from pause
     workoutActive = true;
-  }
+    document.getElementById("startBtn").classList.add("active");
+    document.getElementById("pauseBtn").classList.remove("active");
+    statusMsg().textContent = "";
 
-  if (timer) clearInterval(timer);
-  clearControlHighlights();
-  document.getElementById("startBtn").classList.add("active");
-  statusMsg().textContent = "";
-
-  const current = plan[stepIndex];
-  setPhaseUI(current);
-
-  const startTime = Date.now();
-
-  timer = setInterval(() => {
-    const elapsedMs = Date.now() - startTime;
-    const elapsed = elapsedMs / 1000;
-    const remaining = Math.max(current.secs - elapsed, 0);
-
-    drawTime(Math.ceil(remaining), current.secs, elapsed);
-
-    if (remaining <= 0) {
-      clearInterval(timer);
-      playAlarm();
-      vibrate([300, 200, 300]);
-
-      stepIndex++;
-      if (stepIndex >= plan.length) {
-        statusMsg().textContent = "Workout complete!";
-        workoutActive = false;
-        clearControlHighlights();
-        return;
-      }
-      startWorkout(); // start next phase
+    if (startTimestamp === null) {
+      // brand new phase
+      startTimestamp = Date.now();
+      elapsedBeforePause = 0;
+      setPhaseUI(plan[stepIndex]);
+    } else {
+      // resuming from pause
+      startTimestamp = Date.now() - elapsedBeforePause * 1000;
     }
-  }, 100);
+
+    requestAnimationFrame(updateFrame);
+  }
+}
+
+function updateFrame() {
+  const current = plan[stepIndex];
+  const now = Date.now();
+  const elapsed = (now - startTimestamp) / 1000;
+  const remaining = Math.max(current.secs - elapsed, 0);
+
+  drawTime(Math.ceil(remaining), current.secs, elapsed);
+
+  if (remaining <= 0) {
+    playAlarm();
+    vibrate([300, 200, 300]);
+    stepIndex++;
+    if (stepIndex >= plan.length) {
+      statusMsg().textContent = "Workout complete!";
+      workoutActive = false;
+      clearControlHighlights();
+      startTimestamp = null;
+      elapsedBeforePause = 0;
+      return;
+    }
+    startTimestamp = null;
+    elapsedBeforePause = 0;
+    setPhaseUI(plan[stepIndex]);
+    requestAnimationFrame(updateFrame);
+  } else {
+    animationFrameId = requestAnimationFrame(updateFrame);
+  }
 }
 
 function pauseWorkout() {
-  if (timer) {
-    clearInterval(timer);
-    timer = null;
-    clearControlHighlights();
+  if (workoutActive) {
+    workoutActive = false;
     document.getElementById("pauseBtn").classList.add("active");
+    document.getElementById("startBtn").classList.remove("active");
+    elapsedBeforePause = (Date.now() - startTimestamp) / 1000;
+    cancelAnimationFrame(animationFrameId);
   }
 }
 
 function resetWorkout() {
-  clearInterval(timer);
-  timer = null;
-  stepIndex = 0;
   workoutActive = false;
+  cancelAnimationFrame(animationFrameId);
+  stepIndex = 0;
+  startTimestamp = null;
+  elapsedBeforePause = 0;
   clearControlHighlights();
   statusMsg().textContent = "Reset complete";
   setPhaseUI(plan[0]);
