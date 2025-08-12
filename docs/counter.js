@@ -1,18 +1,18 @@
-// ------ Counter logic + Spotify-friendly sound ------
+// ===== Exercise Counter (with Spotify‑friendly click sound) =====
 
 let count = 0;
 
 // DOM
-const display = document.getElementById("counterDisplay");
+const display  = document.getElementById("counterDisplay");
 const minusBtn = document.getElementById("minusBtn");
 const plusBtn  = document.getElementById("plusBtn");
 
-// Update UI
+// Render
 function render() {
-  if (display) display.textContent = String(count);
+  display.textContent = String(count);
 }
 
-// --------- Sound (Web Audio preferred) ----------
+// ---- Sound: Web Audio (preferred) with HTML5 fallback ----
 let audioCtx = null;
 let clickAudioEl = null;
 
@@ -21,50 +21,41 @@ function ensureAudio() {
     try {
       audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     } catch (e) {
-      audioCtx = null;
+      audioCtx = null; // fallback will be used
     }
   }
   if (!clickAudioEl) {
-    // Low-volume fallback click (still mixes; won’t pause Spotify)
-    clickAudioEl = new Audio("docs/click.mp3");
+    // Low-volume fallback file (keeps Spotify playing)
+    clickAudioEl = new Audio("Click.mp3"); // path matches your /docs listing (case sensitive)
     clickAudioEl.preload = "auto";
-    clickAudioEl.volume = 0.15; // gentle
+    clickAudioEl.volume = 0.15;
   }
 }
 
 function playClick() {
-  // Prefer Web Audio short blip (mixes nicely)
   if (audioCtx) {
     const now = audioCtx.currentTime;
     const osc = audioCtx.createOscillator();
     const gain = audioCtx.createGain();
     osc.type = "square";
-    osc.frequency.value = 1000; // click-like
+    osc.frequency.value = 1000;
     gain.gain.value = 0.12;
     osc.connect(gain).connect(audioCtx.destination);
     osc.start(now);
-    // quick envelope to avoid pops
     gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.06);
     osc.stop(now + 0.08);
-    return;
-  }
-  // Fallback to HTML5 audio (short, low volume, user-gesture -> won't pause Spotify)
-  if (clickAudioEl) {
-    try {
-      clickAudioEl.currentTime = 0;
-      clickAudioEl.play();
-    } catch (e) { /* ignore */ }
+  } else if (clickAudioEl) {
+    try { clickAudioEl.currentTime = 0; clickAudioEl.play(); } catch {}
   }
 }
 
-// ------ Event handlers ------
+// Handlers
 function inc() {
-  ensureAudio(); // unlock on first tap
+  ensureAudio();
   count += 1;
   render();
   playClick();
 }
-
 function dec() {
   ensureAudio();
   count = Math.max(0, count - 1);
@@ -72,12 +63,12 @@ function dec() {
   playClick();
 }
 
-// Attach
+// Wire up
 document.addEventListener("DOMContentLoaded", () => {
   render();
   minusBtn?.addEventListener("click", dec);
   plusBtn?.addEventListener("click", inc);
 
-  // Also unlock audio on first touch anywhere (helps some mobile browsers)
+  // Some mobile browsers require a user gesture to unlock Web Audio
   window.addEventListener("touchstart", ensureAudio, { once: true });
 });
