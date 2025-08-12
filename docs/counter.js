@@ -16,10 +16,9 @@ let remaining = 0;     // seconds left
 let timerId = null;
 let running = false;
 
-// --- Sounds: Web Audio preferred, HTML5 fallback ---
+// --- Sounds: Web Audio preferred, HTML5 fallback for clicks only ---
 let audioCtx = null;
 let clickEl  = null;
-let alertEl  = null;
 
 function ensureAudio(){
   if (!audioCtx) {
@@ -27,31 +26,58 @@ function ensureAudio(){
     catch { audioCtx = null; }
   }
   if (!clickEl) {
-    clickEl = new Audio('Click.mp3'); // matches your /docs filename (case sensitive)
+    // Low-volume fallback file (keeps Spotify playing)
+    clickEl = new Audio('Click.mp3'); // case-sensitive to your /docs file
     clickEl.preload = 'auto';
     clickEl.volume = 0.15;
-  }
-  if (!alertEl) {
-    alertEl = new Audio('Alert.wav'); // matches your /docs filename (case sensitive)
-    alertEl.preload = 'auto';
-    alertEl.volume = 0.35;
   }
 }
 
 function beepShort(freq = 950, dur = 0.08, vol = 0.14){
-  if (!audioCtx) { try { clickEl.currentTime = 0; clickEl.play(); } catch{}; return; }
+  if (!audioCtx) { // fallback tiny click
+    try { clickEl.currentTime = 0; clickEl.play(); } catch {}
+    return;
+  }
   const t = audioCtx.currentTime;
   const o = audioCtx.createOscillator();
   const g = audioCtx.createGain();
-  o.type = 'square'; o.frequency.value = freq;
+  o.type = 'square';
+  o.frequency.value = freq;
   g.gain.value = vol;
   o.connect(g).connect(audioCtx.destination);
   o.start(t);
   g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
   o.stop(t + dur + 0.02);
 }
+
 function playClick(){ ensureAudio(); beepShort(1000, 0.06, 0.12); }
-function playAlert(){ ensureAudio(); try { alertEl.currentTime = 0; alertEl.play(); } catch{} }
+
+// Spotify‑friendly “Time’s up” (generated tones, no media playback)
+function playAlert() {
+  ensureAudio();
+  if (!audioCtx) {
+    // graceful fallback: two quick beeps
+    beepShort(880, 0.15, 0.12);
+    setTimeout(() => beepShort(660, 0.15, 0.12), 180);
+    return;
+  }
+  const now = audioCtx.currentTime;
+  const tones = [
+    { freq: 880, dur: 0.16, delay: 0.00 },
+    { freq: 660, dur: 0.16, delay: 0.20 }
+  ];
+  tones.forEach(t => {
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'square';
+    osc.frequency.value = t.freq;
+    gain.gain.value = 0.14;
+    osc.connect(gain).connect(audioCtx.destination);
+    osc.start(now + (t.delay || 0));
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + (t.delay || 0) + t.dur);
+    osc.stop(now + (t.delay || 0) + t.dur + 0.02);
+  });
+}
 
 // --- Utils ---
 function fmt(sec){
@@ -95,7 +121,6 @@ function startTimer(){
   if (running) return;
   ensureAudio(); playClick();
   if (remaining <= 0) {
-    // if nothing selected, use last duration or default 0
     remaining = duration || 0;
     setDisplay(remaining);
   }
