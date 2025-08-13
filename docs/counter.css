@@ -1,97 +1,102 @@
-/* Page wrapper */
+/* ===== Page wrapper ===== */
 .counter-page{
   max-width: 520px;
   margin: 0 auto;
-  padding: 18px 16px 28px;
+  padding: 18px 12px 28px;
   text-align: center;
   color: #fff;
+  box-sizing: border-box;
 }
 
-/* Headings */
 .section-title{
-  font-size: 1.4rem;
-  letter-spacing: .06em;
-  margin: 8px 0 12px;
+  font-size: 1.3rem;
+  letter-spacing: .04em;
+  margin: 8px 0 10px;
 }
 
-/* Time display */
+/* ===== Timer readout ===== */
 .time-display{
   font-size: 5rem;
   font-weight: 800;
-  letter-spacing: .06em;
-  margin: 8px 0 14px;
+  letter-spacing: .05em;
+  margin: 6px 0 10px;
 }
 
-/* Rows */
-.row{ display:flex; gap:12px; margin:10px 0; }
-.row.center{ justify-content:center; }
-.presets, .controls{ justify-content:center; flex-wrap:wrap; }
+/* ===== One-line rows ===== */
+.preset-row,
+.controls-row{
+  display: flex;
+  flex-wrap: nowrap;          /* force one line */
+  justify-content: center;
+  align-items: stretch;
+  gap: 6px;                   /* tiny space between buttons */
+  margin: 8px 0 10px;
+}
 
-/* Buttons (grey by default) */
-.btn{
-  background: #3a3a3a;
+/* Make buttons shrink to fit on small screens */
+.preset-row .preset,
+.controls-row .control{
+  flex: 1 1 0;                /* equal width, can shrink */
+  min-width: 0;
+}
+
+/* ===== Buttons: minimal padding, no extra border space ===== */
+.preset, .control{
+  -webkit-appearance: none;
+  appearance: none;
+  margin: 0;                  /* no outer margin = no space around border */
+  padding: 6px 0;             /* minimal vertical; 0 horizontal padding */
+  border: 1px solid #2b2b2b;
+  background: #2f2f2f;
   color: #fff;
-  border: none;
-  padding: 12px 18px;
-  border-radius: 12px;
-  font-size: 1rem;
-  font-weight: 700;
-  letter-spacing: .02em;
+  font-size: .95rem;
+  font-weight: 800;
+  border-radius: 10px;
+  line-height: 1.2;
   cursor: pointer;
-  transition: background .15s, transform .05s;
+  transition: background .15s, transform .05s, filter .15s;
 }
-.btn:hover{ filter: brightness(1.1); }
-.btn:active{ transform: translateY(1px); }
+.preset:hover, .control:hover{ filter: brightness(1.1); }
+.preset:active, .control:active{ transform: translateY(1px); }
 
-/* Selected state (red bg, white text) */
-.btn.active{
+/* Active (selected) = red background, white text */
+.preset.active, .control.active{
   background: #ff2d55 !important;
   color: #fff !important;
+  border-color: #ff2d55;
 }
 
-/* Presets fit on one line on phones */
-.presets .btn{
-  min-width: 110px;
-  padding: 12px 10px;    /* tighter left/right so all 4 fit */
-}
-
-/* Controls row (three buttons) */
-.controls .btn{
-  min-width: 110px;
-}
-
-/* Custom button centered */
-.custom{
-  min-width: 140px;
-}
-
-/* Time's up */
+/* ===== Time's up (between rows and sets) ===== */
 .times-up{
   color: salmon;
   font-size: 1rem;
-  margin: 10px 0 6px;
-  min-height: 1.2em; /* reserve space to avoid layout jump */
+  margin: 6px 0 6px;
+  min-height: 1.2em;          /* reserve space to prevent layout jump */
 }
 
-/* Sets: black by default; red when active */
-.sets{
-  justify-content:center;
-  gap: 6px;            /* tight so 1–5 stay on one line */
+/* ===== Sets: one line, compact ===== */
+.sets-row{
+  display: flex;
   flex-wrap: nowrap;
-  margin-top: 6px;
+  justify-content: center;
+  gap: 6px;
+  margin: 6px 0 18px;
 }
 .set-btn{
-  -webkit-appearance:none; appearance:none;
+  -webkit-appearance: none;
+  appearance: none;
+  margin: 0;
+  padding: 6px 8px;           /* compact left/right */
+  min-width: 44px;            /* keeps one line while still tappable */
+  border: 1px solid #222;
   background: #000;
   color: #fff;
-  border: 1px solid #222;
-  border-radius: 10px;
-  padding: 6px 8px;   /* compact */
-  min-width: 46px;
   font-size: 1rem;
-  font-weight: 700;
+  font-weight: 800;
+  border-radius: 10px;
+  line-height: 1.2;
   cursor: pointer;
-  transition: background .15s, transform .05s;
+  transition: background .15s, transform .05s, filter .15s;
 }
 .set-btn:hover{ filter: brightness(1.15); }
 .set-btn:active{ transform: translateY(1px); }
@@ -101,7 +106,7 @@
   border-color: #ff2d55;
 }
 
-/* Home button (consistent style) */
+/* ===== Home button ===== */
 .home-btn{
   display:inline-block;
   background:#2b2f36;
@@ -113,9 +118,9 @@
 }
 .home-btn:hover{ background:#3a3f48 }
 
-/* Smaller phones */
+/* ===== Responsive tweaks for narrow phones ===== */
 @media (max-width: 380px){
-  .time-display{ font-size: 4rem; }
-  .presets .btn, .controls .btn{ min-width: 96px; padding: 10px 8px; }
+  .time-display{ font-size: 4.2rem; }
+  .preset, .control{ font-size: .9rem; border-radius: 8px; }
   .set-btn{ min-width: 40px; font-size: .95rem; padding: 6px 6px; }
 }
