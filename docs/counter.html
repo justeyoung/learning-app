@@ -5,9 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Exercise Counter</title>
 
-  <!-- Night mode (shared) then page-specific -->
-  <link rel="stylesheet" href="style.css?v=18" />
-  <link rel="stylesheet" href="counter.css?v=18" />
+  <!-- Night mode (shared) + page layout (scoped) -->
+  <link rel="stylesheet" href="style.css?v=19" />
+  <link rel="stylesheet" href="counter.css?v=19" />
 </head>
 <body>
   <div class="counter-page">
@@ -15,31 +15,27 @@
 
     <div id="timeDisplay" class="time-display">00:00</div>
 
-    <!-- Preset buttons -->
-    <div class="row presets">
-      <button class="btn preset" data-seconds="30">30 SEC</button>
-      <button class="btn preset" data-seconds="60">60 SEC</button>
-      <button class="btn preset" data-seconds="90">90 SEC</button>
-      <button class="btn preset" data-seconds="120">2 MIN</button>
+    <!-- Presets: one line -->
+    <div class="preset-row" role="group" aria-label="Presets">
+      <button class="preset" data-seconds="30">30 SEC</button>
+      <button class="preset" data-seconds="60">60 SEC</button>
+      <button class="preset" data-seconds="90">90 SEC</button>
+      <button class="preset" data-seconds="120">2 MIN</button>
     </div>
 
-    <!-- Controls -->
-    <div class="row controls">
-      <button id="startBtn" class="btn control">Start</button>
-      <button id="pauseBtn" class="btn control">Pause</button>
-      <button id="resetBtn" class="btn control">Reset</button>
-    </div>
-
-    <div class="row center">
-      <button id="customBtn" class="btn custom">Custom</button>
+    <!-- Controls: another line -->
+    <div class="controls-row" role="group" aria-label="Controls">
+      <button id="startBtn" class="control">Start</button>
+      <button id="pauseBtn" class="control">Pause</button>
+      <button id="resetBtn" class="control">Reset</button>
+      <button id="customBtn" class="control">Custom</button>
     </div>
 
     <!-- Time's up message -->
     <div id="timesUp" class="times-up" aria-live="polite"></div>
 
-    <!-- Sets -->
     <h2 class="section-title">SETS ▲</h2>
-    <div id="setsRow" class="row sets">
+    <div id="setsRow" class="sets-row" aria-label="Sets">
       <button class="set-btn" data-set="1">1</button>
       <button class="set-btn" data-set="2">2</button>
       <button class="set-btn" data-set="3">3</button>
@@ -47,15 +43,13 @@
       <button class="set-btn" data-set="5">5</button>
     </div>
 
-    <div class="row center">
-      <a href="./index.html" class="home-btn">Home</a>
-    </div>
+    <a href="./index.html" class="home-btn">Home</a>
   </div>
 
-  <script src="counter.js?v=18"></script>
+  <script src="counter.js?v=19"></script>
   <script>
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('service-worker.js').catch(console.error);
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("service-worker.js").catch(console.error);
     }
   </script>
 </body>
