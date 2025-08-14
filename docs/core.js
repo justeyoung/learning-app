@@ -24,7 +24,7 @@ const startBtn = document.getElementById("startBtn");
 const pauseBtn = document.getElementById("pauseBtn");
 const resetBtn = document.getElementById("resetBtn");
 
-// Build exercise list UI (this is what brings your 5 bars back)
+// Build exercise list UI
 function renderExerciseList(currentIndex = 0){
   exerciseListEl.innerHTML = "";
   EXERCISES.forEach((name, i) => {
@@ -65,8 +65,7 @@ function tone(freq = 950, dur = 0.1, vol = 0.14, type = 'square', when = 0){
   const t = audioCtx.currentTime + when;
   const o = audioCtx.createOscillator();
   const g = audioCtx.createGain();
-  o.type = type;
-  o.frequency.value = freq;
+  o.type = type; o.frequency.value = freq;
   g.gain.value = 0.0001;
   o.connect(g).connect(audioCtx.destination);
   o.start(t);
@@ -95,7 +94,7 @@ function updateWheel(){
   const ratio = 1 - (remaining / total);
   wheelProgress.style.strokeDasharray = `${C}`;
   wheelProgress.style.strokeDashoffset = `${C * (1 - ratio)}`;
-  wheelProgress.setAttribute('stroke', isBreak ? '#00aaff' : '#ff2d55'); // blue break, red exercise
+  wheelProgress.setAttribute('stroke', isBreak ? '#00aaff' : '#ff2d55');
 }
 
 // Update UI labels & highlighting
@@ -110,7 +109,7 @@ function updateUI(){
   for (let i=0;i<dots.length;i++){
     dots[i].classList.toggle('done', i < setIdx);
     dots[i].classList.toggle('current', i === setIdx && !isBreak);
-    if (isBreak && i === setIdx) dots[i].classList.add('done'); // just finished set
+    if (isBreak && i === setIdx) dots[i].classList.add('done');
   }
 
   // Labels
@@ -201,21 +200,21 @@ function resetAll(){
   exIdx = 0; setIdx = 0; isBreak = false;
   remaining = EXERCISE_SECS;
   sinceStart = 0;
-  renderExerciseList(0); // re-render list to ensure bars exist & reset highlight
-  buildDots();           // reset dots
+  renderExerciseList(0);
+  buildDots();
   updateUI();
 }
 
 // Init
 document.addEventListener('DOMContentLoaded', () => {
-  renderExerciseList(0);  // << builds the 5 exercise bars
-  buildDots();            // << builds the 3 set dots
+  renderExerciseList(0);
+  buildDots();
   updateUI();
 
   startBtn.addEventListener('click', start);
   pauseBtn.addEventListener('click', pause);
   resetBtn.addEventListener('click', resetAll);
 
-  // Unlock audio on first touch
+  // Unlock audio on first touch (iOS)
   window.addEventListener('touchstart', ensureAudio, { once:true });
 });
