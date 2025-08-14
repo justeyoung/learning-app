@@ -1,4 +1,4 @@
-// ===== Core Exercise Tracker (stable list, completion message, Spotify-friendly sounds, +20% vol) =====
+// ===== Core Exercise Tracker (accordion fix, completion message, Spotify-friendly sounds, +20% vol) =====
 
 // --- Config ---
 const EXERCISES = [
@@ -17,14 +17,14 @@ let exIdx = 0;            // 0..4
 let setIdx = 0;           // 0..2
 let isBreak = false;      // false=exercise, true=break
 let running = false;
-let finished = false;     // <-- new: end-of-workout flag
+let finished = false;
 let timerId = null;
 let remaining = EXERCISE_SECS;
 let sinceStart = 0;
 
 // --- DOM refs (assigned on DOMContentLoaded) ---
 let exerciseListEl, wheelProgress, phaseLabel, timeLabel, setsDots, sinceStartEl;
-let startBtn, pauseBtn, resetBtn;
+let startBtn, pauseBtn, resetBtn, exToggleBtn, exArrow;
 
 // ===== Web Audio (no Spotify ducking) =====
 let audioCtx = null;
@@ -33,7 +33,6 @@ function ensureAudio(){
     try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch {}
   }
 }
-// Base tone (+20% volume bump applied centrally)
 function tone(freq = 950, dur = 0.1, vol = 0.14, type = 'square', when = 0){
   if (!audioCtx) return;
   vol *= 1.2; // +20% louder globally
@@ -53,7 +52,7 @@ function phaseChime(){ ensureAudio(); tone(1200,.12,.16,'square',0); tone(800,.1
 function countdownBeep(n){ ensureAudio(); const f={1:1000,2:950,3:900,4:850,5:800}[n]||880; tone(f,0.09,0.14,'square'); }
 function exerciseChangeSound(){ ensureAudio(); tone(700,0.12,0.16,'square',0); tone(900,0.12,0.16,'square',0.20); tone(1100,0.12,0.16,'square',0.40); }
 
-// ===== UI builders (build once; do NOT clear every tick) =====
+// ===== UI builders =====
 function buildExerciseList(){
   exerciseListEl.innerHTML = ""; // build on init/reset ONLY
   EXERCISES.forEach((name) => {
@@ -74,14 +73,14 @@ function buildDots(){
   }
 }
 
-// ===== Helpers =====
+// Helpers
 function fmt(sec){
   sec = Math.max(0, Math.round(sec));
   const m = Math.floor(sec/60), s = sec % 60;
   return `${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
 }
 
-// Update wheel (EXERCISE=RED, BREAK=BLUE)
+// Wheel (EXERCISE=RED, BREAK=BLUE)
 function updateWheel(){
   const r = 110, C = 2 * Math.PI * r;
   const total = isBreak ? BREAK_SECS : EXERCISE_SECS;
@@ -91,9 +90,9 @@ function updateWheel(){
   wheelProgress.setAttribute('stroke', isBreak ? '#00aaff' : '#ff2d55');
 }
 
-// Update highlights — does NOT rebuild list
+// Highlights (no rebuild)
 function updateExerciseHighlights(){
-  const items = exerciseListEl ? Array.from(exerciseListEl.children) : [];
+  const items = Array.from(exerciseListEl.children);
   items.forEach((el, i) => {
     const isThis = i === exIdx;
     el.classList.toggle("current",       isThis && !isBreak && !finished);
@@ -104,19 +103,18 @@ function updateExerciseHighlights(){
   });
 }
 
-// Update dots (no rebuild)
+// Dots (no rebuild)
 function updateDots(){
-  const dots = setsDots ? setsDots.children : [];
+  const dots = setsDots.children;
   for (let i = 0; i < dots.length; i++){
     dots[i].classList.toggle('done', i < setIdx || finished);
     dots[i].classList.toggle('current', i === setIdx && !isBreak && !finished);
-    if (isBreak && i === setIdx) dots[i].classList.add('done'); // just finished set
+    if (isBreak && i === setIdx) dots[i].classList.add('done');
   }
 }
 
-// Main UI update
+// UI update
 function updateUI(){
-  if (!phaseLabel) return; // safety
   if (finished){
     phaseLabel.innerHTML = `<strong>Exercise completed.</strong>`;
     timeLabel.textContent = "00:00";
@@ -132,40 +130,37 @@ function updateUI(){
   updateDots();
 }
 
-// ===== Phase progression =====
+// Phase progression
 function advance(){
   if (!isBreak){
-    // finished exercise -> break
     isBreak = true;
     remaining = BREAK_SECS;
   } else {
-    // finished break -> next set or next exercise
     isBreak = false;
     setIdx += 1;
     if (setIdx >= SETS_PER_EXERCISE){
       setIdx = 0;
       exIdx += 1;
       if (exIdx >= EXERCISES.length){
-        // All done
         finished = true;
         stop();
-        updateUI(); // will show "Exercise completed."
+        updateUI();
         return;
       }
-      exerciseChangeSound(); // distinct cue when NEW exercise starts
+      exerciseChangeSound(); // cue new exercise
     }
     remaining = EXERCISE_SECS;
   }
   updateUI();
 }
 
-// ===== Timer loop =====
+// Timer loop
 function loop(){
   remaining -= 1;
   sinceStart += 1;
 
   if (remaining > 0 && remaining <= 5){
-    countdownBeep(remaining); // last-5 beeps
+    countdownBeep(remaining);
   }
 
   if (remaining <= 0){
@@ -179,7 +174,7 @@ function loop(){
   }
 }
 
-// ===== Controls =====
+// Controls
 function start(){
   if (running || finished) return;
   clickTone();
@@ -207,16 +202,23 @@ function resetAll(){
   clickTone();
   stop();
   exIdx = 0; setIdx = 0; isBreak = false; finished = false;
-  remaining = EXERCISE_SECS;
-  sinceStart = 0;
-  buildExerciseList(); // rebuild list
-  buildDots();         // rebuild dots
+  remaining = EXERCISE_SECS; sinceStart = 0;
+  buildExerciseList();
+  buildDots();
   updateUI();
 }
 
-// ===== Init =====
+// Accordion toggle (with click sound)
+function toggleExercises(){
+  const collapsed = exerciseListEl.classList.toggle('collapsed');
+  exToggleBtn.setAttribute('aria-expanded', String(!collapsed));
+  exArrow.textContent = collapsed ? '▼' : '▲';
+  clickTone();
+}
+
+// Init
 document.addEventListener('DOMContentLoaded', () => {
-  // Wire DOM
+  // DOM refs
   exerciseListEl = document.getElementById("exerciseList");
   wheelProgress  = document.getElementById("wheelProgress");
   phaseLabel     = document.getElementById("phaseLabel");
@@ -226,6 +228,8 @@ document.addEventListener('DOMContentLoaded', () => {
   startBtn       = document.getElementById("startBtn");
   pauseBtn       = document.getElementById("pauseBtn");
   resetBtn       = document.getElementById("resetBtn");
+  exToggleBtn    = document.getElementById("exToggle");
+  exArrow        = document.getElementById("exArrow");
 
   // Build once
   buildExerciseList();
@@ -236,6 +240,7 @@ document.addEventListener('DOMContentLoaded', () => {
   startBtn.addEventListener('click', start);
   pauseBtn.addEventListener('click', pause);
   resetBtn.addEventListener('click', resetAll);
+  exToggleBtn.addEventListener('click', toggleExercises);
 
   // Unlock audio on first touch (iOS)
   window.addEventListener('touchstart', ensureAudio, { once:true });
