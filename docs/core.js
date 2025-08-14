@@ -81,7 +81,6 @@ let running = false;
 let timerId = null;
 let remaining = EXERCISE_SECS;
 let sinceStart = 0;
-let lastTick = null;
 
 // Update wheel stroke
 function updateWheel(){
@@ -98,21 +97,23 @@ function updateWheel(){
 function updateUI(){
   // exercise list highlight
   Array.from(exerciseListEl.children).forEach((el,i)=>{
-    el.classList.toggle("current", i === exIdx);
+    el.classList.toggle("current", i === exIdx && !isBreak);
   });
 
   // dots
   const dots = setsDots.children;
   for (let i=0;i<dots.length;i++){
     dots[i].classList.toggle('done', i < setIdx);
+    // pulse the current set only during the exercise minute
     dots[i].classList.toggle('current', i === setIdx && !isBreak);
-    // during break, current set is done already
+    // during break, the just-finished set counts as done
     if (isBreak && i === setIdx) dots[i].classList.add('done');
   }
 
   // labels
   const name = EXERCISES[exIdx];
-  phaseLabel.innerHTML = `<strong>${name}${isBreak ? " — Break" : ""}</strong>`;
+  // >>> CHANGE: show just "Break" during rest <<<
+  phaseLabel.innerHTML = `<strong>${isBreak ? "Break" : name}</strong>`;
   timeLabel.textContent = fmt(remaining);
   sinceStartEl.textContent = fmt(sinceStart);
 
@@ -144,31 +145,20 @@ function advance(){
   updateUI();
 }
 
-// Timer loop (1s interval for simplicity)
-function tick(){
-  const now = performance.now();
-  if (!lastTick) lastTick = now;
-  const dt = (now - lastTick)/1000;
-  lastTick = now;
-
-  sinceStart += dt;
-  // only decrement per full second boundary for stable display
-  // accumulate and subtract when >=1s
-  // simpler: step per setInterval(1000)
-}
-
+// One-second loop
 function loop(){
   remaining -= 1;
   sinceStart += 1;
+
   if (remaining <= 0){
-    // phase finished
-    // final wheel/full circle
     remaining = 0;
     updateUI();
-    // cues
+
+    // cues at phase end
     ensureAudio();
     try { navigator.vibrate && navigator.vibrate([180,120,180]); } catch {}
     beep(1200, .12, .16); setTimeout(()=>beep(800,.12,.16),180);
+
     advance();
   } else {
     // last 5 seconds beep
@@ -181,7 +171,6 @@ function start(){
   if (running) return;
   ensureAudio();
   running = true;
-  lastTick = null;
   startBtn.classList.add('active');
   pauseBtn.classList.remove('active');
   timerId = setInterval(loop, 1000);
