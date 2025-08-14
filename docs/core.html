@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Core Exercise Tracker</title>
+
+  <!-- Global night mode first, then page-specific -->
+  <link rel="stylesheet" href="style.css?v=1" />
+  <link rel="stylesheet" href="core.css?v=1" />
+</head>
+<body>
+  <div class="core container">
+    <h1 class="title">Core Exercise Tracker</h1>
+
+    <!-- Exercise list (current highlighted in green) -->
+    <div id="exerciseList" class="exercise-list" aria-label="Exercises"></div>
+
+    <!-- Wheel -->
+    <div class="wheel-wrap">
+      <svg class="wheel" viewBox="0 0 260 260" aria-hidden="true">
+        <circle class="track" cx="130" cy="130" r="110"
+                fill="none" stroke="#333" stroke-width="16"></circle>
+        <circle id="wheelProgress" class="progress" cx="130" cy="130" r="110"
+                fill="none" stroke="#4da3ff" stroke-width="16" stroke-linecap="round"></circle>
+      </svg>
+      <div class="wheel-center">
+        <div id="phaseLabel" class="phase-label"><strong>Extended plank</strong></div>
+        <div id="timeLabel" class="time-label">01:00</div>
+      </div>
+    </div>
+
+    <!-- Sets (3 tic-tacs) -->
+    <div class="sets-block">
+      <div class="sets-title"><strong>Sets</strong></div>
+      <div id="setsDots" class="sets-dots" aria-label="Set progress">
+        <!-- JS will create 3 dots -->
+      </div>
+    </div>
+
+    <!-- Since start (optional context) -->
+    <div class="since">
+      <small>Since start</small>
+      <div id="sinceStart">0:00</div>
+    </div>
+
+    <!-- Controls: one line -->
+    <div class="controls">
+      <button id="startBtn" class="ctrl">Start</button>
+      <button id="pauseBtn" class="ctrl">Pause</button>
+      <button id="resetBtn" class="ctrl">Reset</button>
+    </div>
+
+    <a href="./index.html" class="home-btn">Home</a>
+  </div>
+
+  <script src="core.js?v=1"></script>
+  <script>
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("service-worker.js").catch(console.error);
+    }
+  </script>
+</body>
+</html>
