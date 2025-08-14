@@ -88,7 +88,11 @@
 .exercise-list{
   max-width:560px; margin: 6px auto 10px;
   display:grid; grid-template-columns:1fr; gap:8px;
-  overflow:hidden; transition:max-height .25s ease, opacity .2s ease;
+  overflow:hidden;
+  /* IMPORTANT: give it a big default height so it can collapse */
+  max-height: 1000px;
+  opacity: 1;
+  transition:max-height .25s ease, opacity .2s ease, margin .2s ease;
 }
 .exercise-list.collapsed{
   max-height:0 !important;
@@ -125,7 +129,7 @@
   font-weight:800;
 }
 
-/* ===== Controls (one row) – now BELOW the list ===== */
+/* ===== Controls (one row) – BELOW the list ===== */
 .controls{
   display:flex; justify-content:center; gap:6px;
   margin: 8px 0 14px;
