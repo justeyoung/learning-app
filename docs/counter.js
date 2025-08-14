@@ -1,4 +1,4 @@
-// ===== Timer + Sets (Spotify‑friendly sounds) =====
+// ===== Timer + Sets (Spotify-friendly sounds) =====
 
 // Elements
 const display   = document.getElementById('timeDisplay');
@@ -11,87 +11,74 @@ const setsRow   = document.getElementById('setsRow');
 const timesUpEl = document.getElementById('timesUp');
 
 // State
-let duration = 0;
-let remaining = 0;
-let timerId = null;
-let running = false;
+let duration  = 0;     // seconds selected
+let remaining = 0;     // seconds left
+let timerId   = null;
+let running   = false;
 
-// ---- Sounds: Web Audio preferred; tiny HTML5 fallback for clicks only ----
+// ===== Web Audio (no Spotify ducking) =====
 let audioCtx = null;
-let clickEl  = null;
+let clickFallback = null; // tiny fallback if Web Audio unavailable
 
 function ensureAudio(){
   if (!audioCtx) {
     try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
     catch { audioCtx = null; }
   }
-  if (!clickEl) {
-    clickEl = new Audio('Click.mp3'); // case must match your file
-    clickEl.preload = 'auto';
-    clickEl.volume = 0.15;
+  if (!clickFallback) {
+    // Low-volume click fallback – browsers treat short effects leniently
+    clickFallback = new Audio('Click.mp3'); // case must match your file
+    clickFallback.preload = 'auto';
+    clickFallback.volume = 0.15;
   }
 }
 
-function beepShort(freq = 950, dur = 0.08, vol = 0.14){
-  if (!audioCtx) { try { clickEl.currentTime = 0; clickEl.play(); } catch{}; return; }
-  const t = audioCtx.currentTime;
-  const o = audioCtx.createOscillator();
-  const g = audioCtx.createGain();
-  o.type = 'square';
-  o.frequency.value = freq;
-  g.gain.value = vol;
-  o.connect(g).connect(audioCtx.destination);
-  o.start(t);
-  g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-  o.stop(t + dur + 0.02);
+function tone({freq=950, dur=0.1, vol=0.14, type='square', when=0} = {}){
+  if (!audioCtx) { try { clickFallback.currentTime = 0; clickFallback.play(); } catch{}; return; }
+  const t = audioCtx.currentTime + when;
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.type = type;
+  osc.frequency.value = freq;
+  gain.gain.value = 0.0001;                       // start silent (no click)
+  osc.connect(gain).connect(audioCtx.destination);
+  osc.start(t);
+  gain.gain.exponentialRampToValueAtTime(vol, t + 0.01);
+  gain.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  osc.stop(t + dur + 0.02);
 }
-function playClick(){ ensureAudio(); beepShort(1000, 0.06, 0.12); }
 
-/* Longer “Time’s up” alert (~2.4s, 8 notes), Web Audio only (doesn't duck Spotify) */
-function playAlert() {
+function clickTone(){ ensureAudio(); tone({freq: 1000, dur: 0.06, vol: 0.12}); }
+
+function countdownBeep(n){ // n = 5..1
   ensureAudio();
+  const freq = ({5:800,4:850,3:900,2:950,1:1000})[n] || 900;
+  tone({freq, dur:0.09, vol:0.14});
+}
 
-  // Vibration haptic
-  try { navigator.vibrate && navigator.vibrate([250,120,250,120,250]); } catch {}
-
-  if (!audioCtx) {
-    // Fallback: multi-beep pattern (still stays short)
-    let n = 0;
-    const id = setInterval(() => {
-      beepShort(n % 2 ? 700 : 950, 0.14, 0.16);
-      if (++n >= 8) clearInterval(id);
-    }, 300);
+// Clear, longer time-up chime (~2.4s, 8 notes) – still Web Audio only
+function timeUpChime(){
+  ensureAudio();
+  try { navigator.vibrate && navigator.vibrate([240,120,240]); } catch {}
+  if (!audioCtx) { // fallback quick series
+    let n = 0; const id = setInterval(()=>{ countdownBeep((n%5)+1); if(++n>=8) clearInterval(id); }, 240);
     return;
   }
-
-  const ctx = audioCtx;
-  const start = ctx.currentTime;
+  const start = audioCtx.currentTime;
   const seq = [
-    { t: 0.00, f: 880,  d: 0.18 },
-    { t: 0.24, f: 660,  d: 0.18 },
-    { t: 0.48, f: 990,  d: 0.18 },
-    { t: 0.84, f: 880,  d: 0.22 },
-    { t: 1.12, f: 660,  d: 0.22 },
-    { t: 1.40, f: 1046, d: 0.20 }, // C6
-    { t: 1.80, f: 880,  d: 0.25 },
-    { t: 2.10, f: 660,  d: 0.25 }
+    { t: 0.00, f: 880,  d: 0.16 },
+    { t: 0.22, f: 660,  d: 0.16 },
+    { t: 0.44, f: 990,  d: 0.16 },
+    { t: 0.72, f: 880,  d: 0.20 },
+    { t: 1.02, f: 660,  d: 0.20 },
+    { t: 1.34, f: 1046, d: 0.18 }, // C6
+    { t: 1.70, f: 880,  d: 0.22 },
+    { t: 2.04, f: 660,  d: 0.22 }
   ];
-
-  seq.forEach(({ t, f, d }) => {
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.type = 'square';
-    osc.frequency.value = f;
-    gain.gain.value = 0.0001;  // start silent
-    osc.connect(gain).connect(ctx.destination);
-    osc.start(start + t);
-    gain.gain.exponentialRampToValueAtTime(0.18, start + t + 0.01);
-    gain.gain.exponentialRampToValueAtTime(0.0001, start + t + d);
-    osc.stop(start + t + d + 0.02);
-  });
+  seq.forEach(({t,f,d}) => tone({freq:f, dur:d, vol:0.16, when:t}));
 }
 
-// ---- Utils ----
+// ===== Utils =====
 function fmt(sec){
   sec = Math.max(0, Math.round(sec));
   const m = Math.floor(sec/60);
@@ -99,15 +86,17 @@ function fmt(sec){
   return `${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
 }
 function setDisplay(sec){ display.textContent = fmt(sec); }
+function stopTimer(){ running = false; if (timerId){ clearInterval(timerId); timerId = null; } }
 
-// ---- Presets ----
+// ===== Presets =====
 function clearPresetActive(){ presets.forEach(b => b.classList.remove('active')); }
+
 presets.forEach(btn=>{
   btn.addEventListener('click', ()=>{
-    ensureAudio(); playClick();
+    ensureAudio(); clickTone();
     clearPresetActive();
     btn.classList.add('active');
-    duration = parseInt(btn.dataset.seconds, 10) || 0;
+    duration  = parseInt(btn.dataset.seconds, 10) || 0;
     remaining = duration;
     setDisplay(remaining);
     timesUpEl.textContent = '';
@@ -117,20 +106,27 @@ presets.forEach(btn=>{
   });
 });
 
-// ---- Core timer ----
+// ===== Core timer =====
 function tick(){
   remaining -= 1;
   setDisplay(remaining);
+
+  if (remaining > 0 && remaining <= 5){
+    // beep on each of last 5 seconds
+    countdownBeep(remaining);
+  }
+
   if (remaining <= 0){
     stopTimer();
     setDisplay(0);
     timesUpEl.textContent = "Time's up!";
-    playAlert();
+    timeUpChime();
   }
 }
+
 function startTimer(){
   if (running) return;
-  ensureAudio(); playClick();
+  ensureAudio(); clickTone();
   if (remaining <= 0) {
     remaining = duration || 0;
     setDisplay(remaining);
@@ -142,15 +138,17 @@ function startTimer(){
   timesUpEl.textContent = '';
   timerId = setInterval(tick, 1000);
 }
+
 function pauseTimer(){
   if (!running) return;
-  ensureAudio(); playClick();
+  ensureAudio(); clickTone();
   stopTimer();
   pauseBtn.classList.add('active');
   startBtn.classList.remove('active');
 }
+
 function resetTimer(){
-  ensureAudio(); playClick();
+  ensureAudio(); clickTone();
   stopTimer();
   remaining = 0;
   setDisplay(0);
@@ -159,21 +157,17 @@ function resetTimer(){
   pauseBtn.classList.remove('active');
   timesUpEl.textContent = '';
 }
-function stopTimer(){
-  running = false;
-  if (timerId){ clearInterval(timerId); timerId = null; }
-}
 
-// ---- Custom time (prompt mm + ss) ----
+// ===== Custom time (simple prompts) =====
 customBtn.addEventListener('click', ()=>{
-  ensureAudio(); playClick();
+  ensureAudio(); clickTone();
   const mm = prompt('Minutes?', '0');
   if (mm === null) return;
   const ss = prompt('Seconds?', '30');
   if (ss === null) return;
-  const m = Math.max(0, parseInt(mm,10)||0);
-  const s = Math.max(0, parseInt(ss,10)||0);
-  duration = m*60 + s;
+  const m = Math.max(0, parseInt(mm,10) || 0);
+  const s = Math.max(0, parseInt(ss,10) || 0);
+  duration  = m*60 + s;
   remaining = duration;
   setDisplay(remaining);
   clearPresetActive();
@@ -183,19 +177,20 @@ customBtn.addEventListener('click', ()=>{
   stopTimer();
 });
 
-// ---- Controls ----
+// ===== Controls =====
 startBtn.addEventListener('click', startTimer);
 pauseBtn.addEventListener('click', pauseTimer);
 resetBtn.addEventListener('click', resetTimer);
 
-// ---- Sets (toggle red on/off, click sound) ----
+// ===== Sets toggles (click sound + red active) =====
 setsRow.addEventListener('click', (e)=>{
   const btn = e.target.closest('.set-btn');
   if (!btn) return;
-  ensureAudio(); playClick();
+  ensureAudio(); clickTone();
   btn.classList.toggle('active');
 });
 
-// Init
+// ===== Init =====
 setDisplay(0);
+// Unlock audio on first touch (iOS)
 window.addEventListener('touchstart', ensureAudio, { once:true });
