@@ -13,32 +13,6 @@
   margin: 8px 0 14px;
 }
 
-/* Exercise list */
-.exercise-list{
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 8px;
-  margin: 6px 0 12px;
-}
-.exercise-item{
-  background: #1c1f24;
-  border: 1px solid #262a33;
-  border-radius: 10px;
-  padding: 8px 12px;
-  text-align: left;
-  font-weight: 700;
-}
-.exercise-item .name{ opacity: .9; }
-.exercise-item.current{
-  background: #123c23;               /* greenish */
-  border-color: #29d17a;
-  box-shadow: 0 0 0 1px #183e29 inset, 0 0 12px rgba(41,209,122,0.2);
-}
-.exercise-item.current .name{
-  color: #c8ffd6;
-  font-weight: 800;
-}
-
 /* Wheel */
 .wheel-wrap{
   position: relative;
@@ -50,11 +24,11 @@
   display: block;
   width: 100%;
   height: 100%;
-  transform: rotate(-90deg); /* start at top */
+  transform: rotate(-90deg);
   pointer-events: none;
 }
 .progress{
-  stroke-dasharray: 691; /* 2πr where r=110 */
+  stroke-dasharray: 691;
   stroke-dashoffset: 0;
   transition: stroke-dashoffset .08s linear, stroke .2s ease;
 }
@@ -77,17 +51,14 @@
 }
 .dot.done{ background: #29d17a; border-color: #29d17a; }
 .dot.current{ box-shadow: 0 0 0 2px rgba(41,209,122,.35); animation: pulse 1.2s infinite; }
-@keyframes pulse{
-  0%,100%{ transform: scale(1); }
-  50%{ transform: scale(1.12); }
-}
+@keyframes pulse{ 0%,100%{ transform: scale(1); } 50%{ transform: scale(1.12); } }
 
 /* Since start */
 .since{
   color:#9aa0a6; font-size:.95rem; margin: 4px 0 8px;
 }
 
-/* Controls on one line, minimal padding */
+/* Controls on one line */
 .controls{
   display:flex; justify-content:center; gap:6px; margin: 8px 0 14px;
 }
@@ -102,6 +73,43 @@
 .ctrl:hover{ filter: brightness(1.1); }
 .ctrl:active{ transform: translateY(1px); }
 .ctrl.active{ background:#ff2d55; border-color:#ff2d55; }
+
+/* Exercise list (moved below) */
+.exercise-section{
+  margin: 6px 0 14px;
+}
+.exercise-header{
+  text-align:left;
+  font-weight: 800;
+  margin: 0 auto 6px;
+  max-width: 560px;
+  padding: 0 2px;
+  opacity: .95;
+}
+.exercise-list{
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+  margin: 0 auto;
+}
+.exercise-item{
+  background: #1c1f24;
+  border: 1px solid #262a33;
+  border-radius: 10px;
+  padding: 8px 12px;
+  text-align: left;
+  font-weight: 700;
+}
+.exercise-item .name{ opacity: .9; }
+.exercise-item.current{
+  background: #123c23;
+  border-color: #29d17a;
+  box-shadow: 0 0 0 1px #183e29 inset, 0 0 12px rgba(41,209,122,0.2);
+}
+.exercise-item.current .name{
+  color: #c8ffd6;
+  font-weight: 800;
+}
 
 /* Home btn */
 .home-btn{
