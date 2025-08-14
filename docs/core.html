@@ -7,7 +7,7 @@
 
   <!-- Global night mode first, then page-specific -->
   <link rel="stylesheet" href="style.css?v=1" />
-  <link rel="stylesheet" href="core.css?v=2" />
+  <link rel="stylesheet" href="core.css?v=3" />
 </head>
 <body>
   <div class="core container">
@@ -19,7 +19,7 @@
         <circle class="track" cx="130" cy="130" r="110"
                 fill="none" stroke="#333" stroke-width="16"></circle>
         <circle id="wheelProgress" class="progress" cx="130" cy="130" r="110"
-                fill="none" stroke="#4da3ff" stroke-width="16" stroke-linecap="round"></circle>
+                fill="none" stroke="#ff2d55" stroke-width="16" stroke-linecap="round"></circle>
       </svg>
       <div class="wheel-center">
         <div id="phaseLabel" class="phase-label"><strong>Extended plank</strong></div>
@@ -33,10 +33,10 @@
       <div id="setsDots" class="sets-dots" aria-label="Set progress"></div>
     </div>
 
-    <!-- Since start -->
-    <div class="since">
-      <small>Since start</small>
-      <div id="sinceStart">0:00</div>
+    <!-- Since start: single line -->
+    <div id="sinceStartWrapper">
+      <span>Since start:</span>
+      <span id="sinceStart">00:00</span>
     </div>
 
     <!-- Controls: one line -->
@@ -46,7 +46,7 @@
       <button id="resetBtn" class="ctrl">Reset</button>
     </div>
 
-    <!-- (Moved here) Exercise list below wheel, sets, and controls -->
+    <!-- Exercises list BELOW -->
     <div class="exercise-section">
       <div class="exercise-header"><strong>Exercises</strong></div>
       <div id="exerciseList" class="exercise-list" aria-label="Exercises"></div>
@@ -55,7 +55,7 @@
     <a href="./index.html" class="home-btn">Home</a>
   </div>
 
-  <script src="core.js?v=1"></script>
+  <script src="core.js?v=3"></script>
   <script>
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker.register("service-worker.js").catch(console.error);
