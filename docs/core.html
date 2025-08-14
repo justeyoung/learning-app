@@ -7,7 +7,7 @@
 
   <!-- Global night mode first, then page-specific -->
   <link rel="stylesheet" href="style.css?v=1" />
-  <link rel="stylesheet" href="core.css?v=3" />
+  <link rel="stylesheet" href="core.css?v=5" />
 </head>
 <body>
   <div class="core container">
@@ -16,8 +16,7 @@
     <!-- Time wheel -->
     <div class="wheel-wrap">
       <svg class="wheel" viewBox="0 0 260 260" aria-hidden="true">
-        <circle class="track" cx="130" cy="130" r="110"
-                fill="none" stroke="#333" stroke-width="16"></circle>
+        <circle class="track" cx="130" cy="130" r="110" fill="none" stroke="#333" stroke-width="16"></circle>
         <circle id="wheelProgress" class="progress" cx="130" cy="130" r="110"
                 fill="none" stroke="#ff2d55" stroke-width="16" stroke-linecap="round"></circle>
       </svg>
@@ -27,7 +26,7 @@
       </div>
     </div>
 
-    <!-- Sets (3 tic-tacs) -->
+    <!-- Sets (3 tic-tacs) – now ABOVE the controls -->
     <div class="sets-block">
       <div class="sets-title"><strong>Sets</strong></div>
       <div id="setsDots" class="sets-dots" aria-label="Set progress"></div>
@@ -39,23 +38,26 @@
       <span id="sinceStart">00:00</span>
     </div>
 
-    <!-- Controls: one line -->
+    <!-- Accordion header for exercise list -->
+    <button id="exToggle" class="ex-accordion" aria-expanded="true" aria-controls="exerciseList">
+      <span>Exercises</span>
+      <span id="exArrow" class="arrow">▲</span>
+    </button>
+
+    <!-- Exercises list (collapsible) – now ABOVE the controls -->
+    <div id="exerciseList" class="exercise-list" aria-label="Exercises"></div>
+
+    <!-- Controls: one line (moved below) -->
     <div class="controls">
       <button id="startBtn" class="ctrl">Start</button>
       <button id="pauseBtn" class="ctrl">Pause</button>
       <button id="resetBtn" class="ctrl">Reset</button>
     </div>
 
-    <!-- Exercises list BELOW -->
-    <div class="exercise-section">
-      <div class="exercise-header"><strong>Exercises</strong></div>
-      <div id="exerciseList" class="exercise-list" aria-label="Exercises"></div>
-    </div>
-
     <a href="./index.html" class="home-btn">Home</a>
   </div>
 
-  <script src="core.js?v=3"></script>
+  <script src="core.js?v=5"></script>
   <script>
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker.register("service-worker.js").catch(console.error);
