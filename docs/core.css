@@ -106,11 +106,27 @@
 }
 .exercise-item .name { color: #e6e6e6; opacity: .9; }
 
-/* Current exercise = digital green text on black */
-.exercise-item.current { background: #000; border-color: #0aff0a; box-shadow: none; }
+/* === CURRENT EXERCISE: digital green (exercise) === */
+.exercise-item.current {
+  background: #000;                 /* keep black background */
+  border-color: #0aff0a;            /* thin green border */
+  box-shadow: none;
+}
 .exercise-item.current .name {
-  color: #0aff0a;
+  color: #0aff0a;                   /* bright green text */
   text-shadow: 0 0 6px rgba(10,255,10,.8);
+  font-weight: 800;
+}
+
+/* === BREAK HIGHLIGHT: digital blue (same exercise during break) === */
+.exercise-item.break-current {
+  background: #000;
+  border-color: #00aaff;            /* thin blue border */
+  box-shadow: none;
+}
+.exercise-item.break-current .name {
+  color: #00aaff;                   /* bright blue text */
+  text-shadow: 0 0 6px rgba(0,170,255,.8);
   font-weight: 800;
 }
 
