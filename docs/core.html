@@ -7,16 +7,13 @@
 
   <!-- Global night mode first, then page-specific -->
   <link rel="stylesheet" href="style.css?v=1" />
-  <link rel="stylesheet" href="core.css?v=1" />
+  <link rel="stylesheet" href="core.css?v=2" />
 </head>
 <body>
   <div class="core container">
     <h1 class="title">Core Exercise Tracker</h1>
 
-    <!-- Exercise list (current highlighted in green) -->
-    <div id="exerciseList" class="exercise-list" aria-label="Exercises"></div>
-
-    <!-- Wheel -->
+    <!-- Time wheel -->
     <div class="wheel-wrap">
       <svg class="wheel" viewBox="0 0 260 260" aria-hidden="true">
         <circle class="track" cx="130" cy="130" r="110"
@@ -33,12 +30,10 @@
     <!-- Sets (3 tic-tacs) -->
     <div class="sets-block">
       <div class="sets-title"><strong>Sets</strong></div>
-      <div id="setsDots" class="sets-dots" aria-label="Set progress">
-        <!-- JS will create 3 dots -->
-      </div>
+      <div id="setsDots" class="sets-dots" aria-label="Set progress"></div>
     </div>
 
-    <!-- Since start (optional context) -->
+    <!-- Since start -->
     <div class="since">
       <small>Since start</small>
       <div id="sinceStart">0:00</div>
@@ -49,6 +44,12 @@
       <button id="startBtn" class="ctrl">Start</button>
       <button id="pauseBtn" class="ctrl">Pause</button>
       <button id="resetBtn" class="ctrl">Reset</button>
+    </div>
+
+    <!-- (Moved here) Exercise list below wheel, sets, and controls -->
+    <div class="exercise-section">
+      <div class="exercise-header"><strong>Exercises</strong></div>
+      <div id="exerciseList" class="exercise-list" aria-label="Exercises"></div>
     </div>
 
     <a href="./index.html" class="home-btn">Home</a>
