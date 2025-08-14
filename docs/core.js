@@ -1,5 +1,4 @@
-// ===== Core Exercise Tracker (stable list, Spotify-friendly sounds, +20% vol) =====
-// 5 exercises × 3 sets each; every set = 1:00 exercise + 1:00 break
+// ===== Core Exercise Tracker (stable list, completion message, Spotify-friendly sounds, +20% vol) =====
 
 // --- Config ---
 const EXERCISES = [
@@ -18,6 +17,7 @@ let exIdx = 0;            // 0..4
 let setIdx = 0;           // 0..2
 let isBreak = false;      // false=exercise, true=break
 let running = false;
+let finished = false;     // <-- new: end-of-workout flag
 let timerId = null;
 let remaining = EXERCISE_SECS;
 let sinceStart = 0;
@@ -55,7 +55,7 @@ function exerciseChangeSound(){ ensureAudio(); tone(700,0.12,0.16,'square',0); t
 
 // ===== UI builders (build once; do NOT clear every tick) =====
 function buildExerciseList(){
-  exerciseListEl.innerHTML = ""; // build once on init/reset ONLY
+  exerciseListEl.innerHTML = ""; // build on init/reset ONLY
   EXERCISES.forEach((name) => {
     const item = document.createElement("div");
     item.className = "exercise-item";
@@ -85,7 +85,7 @@ function fmt(sec){
 function updateWheel(){
   const r = 110, C = 2 * Math.PI * r;
   const total = isBreak ? BREAK_SECS : EXERCISE_SECS;
-  const ratio = 1 - (remaining / total);
+  const ratio = finished ? 1 : (1 - (remaining / total));
   wheelProgress.style.strokeDasharray = `${C}`;
   wheelProgress.style.strokeDashoffset = `${C * (1 - ratio)}`;
   wheelProgress.setAttribute('stroke', isBreak ? '#00aaff' : '#ff2d55');
@@ -96,11 +96,9 @@ function updateExerciseHighlights(){
   const items = exerciseListEl ? Array.from(exerciseListEl.children) : [];
   items.forEach((el, i) => {
     const isThis = i === exIdx;
-    // exercise phase = green
-    el.classList.toggle("current",       isThis && !isBreak);
-    // break phase   = blue
-    el.classList.toggle("break-current", isThis &&  isBreak);
-    if (!isThis){
+    el.classList.toggle("current",       isThis && !isBreak && !finished);
+    el.classList.toggle("break-current", isThis &&  isBreak && !finished);
+    if (!isThis || finished){
       el.classList.remove("current", "break-current");
     }
   });
@@ -110,18 +108,23 @@ function updateExerciseHighlights(){
 function updateDots(){
   const dots = setsDots ? setsDots.children : [];
   for (let i = 0; i < dots.length; i++){
-    dots[i].classList.toggle('done', i < setIdx);
-    dots[i].classList.toggle('current', i === setIdx && !isBreak);
-    if (isBreak && i === setIdx) dots[i].classList.add('done');
+    dots[i].classList.toggle('done', i < setIdx || finished);
+    dots[i].classList.toggle('current', i === setIdx && !isBreak && !finished);
+    if (isBreak && i === setIdx) dots[i].classList.add('done'); // just finished set
   }
 }
 
 // Main UI update
 function updateUI(){
-  if (!phaseLabel) return; // safety if called early
-  const name = EXERCISES[exIdx];
-  phaseLabel.innerHTML = `<strong>${isBreak ? "Break" : name}</strong>`;
-  timeLabel.textContent = fmt(remaining);
+  if (!phaseLabel) return; // safety
+  if (finished){
+    phaseLabel.innerHTML = `<strong>Exercise completed.</strong>`;
+    timeLabel.textContent = "00:00";
+  } else {
+    const name = EXERCISES[exIdx];
+    phaseLabel.innerHTML = `<strong>${isBreak ? "Break" : name}</strong>`;
+    timeLabel.textContent = fmt(remaining);
+  }
   sinceStartEl.textContent = fmt(sinceStart);
 
   updateWheel();
@@ -143,11 +146,13 @@ function advance(){
       setIdx = 0;
       exIdx += 1;
       if (exIdx >= EXERCISES.length){
+        // All done
+        finished = true;
         stop();
-        updateUI();
+        updateUI(); // will show "Exercise completed."
         return;
       }
-      exerciseChangeSound(); // distinct cue when a NEW exercise starts
+      exerciseChangeSound(); // distinct cue when NEW exercise starts
     }
     remaining = EXERCISE_SECS;
   }
@@ -176,7 +181,7 @@ function loop(){
 
 // ===== Controls =====
 function start(){
-  if (running) return;
+  if (running || finished) return;
   clickTone();
   ensureAudio();
   running = true;
@@ -201,11 +206,11 @@ function stop(){
 function resetAll(){
   clickTone();
   stop();
-  exIdx = 0; setIdx = 0; isBreak = false;
+  exIdx = 0; setIdx = 0; isBreak = false; finished = false;
   remaining = EXERCISE_SECS;
   sinceStart = 0;
-  buildExerciseList(); // build once on reset
-  buildDots();
+  buildExerciseList(); // rebuild list
+  buildDots();         // rebuild dots
   updateUI();
 }
 
