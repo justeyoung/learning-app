@@ -11,8 +11,8 @@ const EXERCISES = [
 const SETS_PER_EXERCISE = 3;
 
 // *** TEST MODE: 10 seconds each ***
-const EXERCISE_SECS = 10;
-const BREAK_SECS = 10;
+const EXERCISE_SECS = 60;
+const BREAK_SECS = 60;
 
 // --- State ---
 let exIdx = 0;            // 0..4 (5 exercises)
