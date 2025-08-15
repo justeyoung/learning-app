@@ -1,267 +1,177 @@
-// ===== Core Exercise Tracker (Digital Ping alert, accordion, Spotify-friendly, +15% tones) =====
+// ============================
+// CONFIG
+// ============================
 
-// --- Config ---
+// Test mode: all times 10s
+const EXERCISE_TIME = 10; // seconds
+const BREAK_TIME = 10; // seconds
+const TOTAL_SETS = 3;
 const EXERCISES = [
-  "Extended plank",
-  "Hollow hold",
-  "Wrist to knee crunch",
-  "AB roll out",
-  "Reverse crunch"
+  "Extended Plank",
+  "Side Plank",
+  "Russian Twist",
+  "Leg Raise",
+  "Mountain Climbers"
 ];
-const SETS_PER_EXERCISE = 3;
 
-// *** TEST MODE: 10 seconds each ***
-const EXERCISE_SECS = 10;
-const BREAK_SECS = 10;
+// ============================
+// DOM ELEMENTS
+// ============================
+const timerDisplay = document.getElementById("timer");
+const statusDisplay = document.getElementById("status");
+const setIndicators = document.getElementById("setIndicators");
+const exerciseList = document.getElementById("exerciseList");
+const startBtn = document.getElementById("startBtn");
+const pauseBtn = document.getElementById("pauseBtn");
+const resetBtn = document.getElementById("resetBtn");
 
-// --- State ---
-let exIdx = 0;            // 0..4 (5 exercises)
-let setIdx = 0;           // 0..2 (3 sets per exercise)
-let isBreak = false;      // false=exercise, true=break
-let running = false;
-let finished = false;
-let timerId = null;
-let remaining = EXERCISE_SECS;
-let sinceStart = 0;
+// ============================
+// SOUNDS
+// ============================
 
-// --- DOM refs (assigned on DOMContentLoaded) ---
-let exerciseListEl, wheelProgress, phaseLabel, timeLabel, setsDots, sinceStartEl;
-let startBtn, pauseBtn, resetBtn, exToggleBtn, exArrow;
+// Click sound
+const clickSound = new Audio("click.mp3");
+clickSound.volume = 0.3; // prevent Spotify ducking
 
-// ===== Web Audio tones (don’t duck Spotify) =====
-let audioCtx = null;
-function ensureAudio(){
-  if (!audioCtx){
-    try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch {}
-  }
-}
-/** Base tone — all tone volumes boosted by +15% */
-function tone(freq = 950, dur = 0.1, vol = 0.14, type = 'square', when = 0){
-  if (!audioCtx) return;
-  vol *= 1.15; // +15% louder globally
-  const t = audioCtx.currentTime + when;
-  const o = audioCtx.createOscillator();
-  const g = audioCtx.createGain();
-  o.type = type; o.frequency.value = freq;
-  g.gain.value = 0.0001;
-  o.connect(g).connect(audioCtx.destination);
-  o.start(t);
-  g.gain.exponentialRampToValueAtTime(vol, t + 0.01);
-  g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-  o.stop(t + dur + 0.02);
-}
-function clickTone(){ ensureAudio(); tone(1000, 0.06, 0.12, 'square'); }
-function phaseChime(){ ensureAudio(); tone(1200,.12,.16,'square',0); tone(800,.12,.16,'square',0.18); }
-function countdownBeep(n){ ensureAudio(); const f={1:1000,2:950,3:900,4:850,5:800}[n]||880; tone(f,0.09,0.14,'square'); }
-function exerciseChangeSound(){ ensureAudio(); tone(700,0.12,0.16,'square',0); tone(900,0.12,0.16,'square',0.20); tone(1100,0.12,0.16,'square',0.40); }
+// 5-second countdown beep
+const beepSound = new Audio("beep.mp3");
+beepSound.volume = 0.5;
 
-// ===== Special alert: 5s Digital Ping (file contains the whole cue; play once) =====
-const digitalPing = new Audio('digital_ping.mp3'); // put the file here
-digitalPing.preload = 'auto';
-digitalPing.setAttribute('playsinline','');
-digitalPing.volume = 1.0;
-function playDigitalPingOnce(){
-  try { digitalPing.currentTime = 0; digitalPing.play(); } catch {}
-}
+// Exercise change sound (digital ping)
+const digitalPing = new Audio("digital_ping.mp3");
+digitalPing.volume = 0.8; // louder for clarity
 
-// ===== UI builders =====
-function buildExerciseList(){
-  exerciseListEl.innerHTML = ""; // build on init/reset ONLY
-  EXERCISES.forEach((name) => {
-    const item = document.createElement("div");
-    item.className = "exercise-item";
-    item.innerHTML = `<div class="name">${name}</div>`;
-    exerciseListEl.appendChild(item);
-  });
-}
-function buildDots(){
-  setsDots.innerHTML = "";
-  for (let i = 0; i < SETS_PER_EXERCISE; i++){
-    const d = document.createElement("div");
-    d.className = "dot";
-    d.dataset.idx = i;
-    setsDots.appendChild(d);
-  }
-}
+// ============================
+// STATE VARIABLES
+// ============================
+let currentSet = 1;
+let currentExerciseIndex = 0;
+let isBreak = false;
+let timeRemaining = EXERCISE_TIME;
+let timerInterval;
+let totalElapsedSeconds = 0;
+let isRunning = false;
 
-// Helpers
-function fmt(sec){
-  sec = Math.max(0, Math.round(sec));
-  const m = Math.floor(sec/60), s = sec % 60;
-  return `${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
-}
+// ============================
+// FUNCTIONS
+// ============================
 
-// Wheel (EXERCISE=RED, BREAK=BLUE)
-function updateWheel(){
-  const r = 110, C = 2 * Math.PI * r;
-  const total = isBreak ? BREAK_SECS : EXERCISE_SECS;
-  const ratio = finished ? 1 : (1 - (remaining / total));
-  wheelProgress.style.strokeDasharray = `${C}`;
-  wheelProgress.style.strokeDashoffset = `${C * (1 - ratio)}`;
-  wheelProgress.setAttribute('stroke', isBreak ? '#00aaff' : '#ff2d55');
-}
-
-// Highlights (no rebuild)
-function updateExerciseHighlights(){
-  const items = Array.from(exerciseListEl.children);
-  items.forEach((el, i) => {
-    const isThis = i === exIdx;
-    el.classList.toggle("current",       isThis && !isBreak && !finished);
-    el.classList.toggle("break-current", isThis &&  isBreak && !finished);
-    if (!isThis || finished){
-      el.classList.remove("current", "break-current");
+function renderExercises() {
+  exerciseList.innerHTML = "";
+  EXERCISES.forEach((exercise, index) => {
+    const bar = document.createElement("div");
+    bar.className = "exercise-bar";
+    bar.textContent = exercise;
+    if (index === currentExerciseIndex) {
+      bar.classList.add(isBreak ? "current-break" : "current-exercise");
     }
+    exerciseList.appendChild(bar);
   });
 }
 
-// Dots (no rebuild)
-function updateDots(){
-  const dots = setsDots.children;
-  for (let i = 0; i < dots.length; i++){
-    dots[i].classList.toggle('done', i < setIdx || finished);
-    dots[i].classList.toggle('current', i === setIdx && !isBreak && !finished);
-    if (isBreak && i === setIdx) dots[i].classList.add('done');
+function updateSetIndicators() {
+  setIndicators.innerHTML = "";
+  for (let i = 1; i <= TOTAL_SETS; i++) {
+    const tic = document.createElement("div");
+    tic.className = "set-tic";
+    if (i < currentSet) {
+      tic.classList.add("completed");
+    } else if (i === currentSet) {
+      tic.classList.add("active");
+    }
+    setIndicators.appendChild(tic);
   }
 }
 
-// UI update
-function updateUI(){
-  if (finished){
-    phaseLabel.innerHTML = `<strong>Exercise completed.</strong>`;
-    timeLabel.textContent = "00:00";
-  } else {
-    const name = EXERCISES[exIdx];
-    phaseLabel.innerHTML = `<strong>${isBreak ? "Break" : name}</strong>`;
-    timeLabel.textContent = fmt(remaining);
-  }
-  sinceStartEl.textContent = fmt(sinceStart);
-
-  updateWheel();
-  updateExerciseHighlights();
-  updateDots();
+function updateDisplay() {
+  const mins = String(Math.floor(timeRemaining / 60)).padStart(2, "0");
+  const secs = String(timeRemaining % 60).padStart(2, "0");
+  timerDisplay.textContent = `${mins}:${secs}`;
+  statusDisplay.textContent = isBreak
+    ? "Break"
+    : EXERCISES[currentExerciseIndex];
 }
 
-// Phase progression
-function advance(){
-  if (!isBreak){
-    // Finished exercise -> enter break
-    isBreak = true;
-    remaining = BREAK_SECS;
-  } else {
-    // Finished break -> start next set/exercise
-    // SPECIAL ALERT: end of 3rd break (after Exercise 3 Set 3), i.e., exIdx===2 and setIdx===2 while in break
-    if (exIdx === 2 && setIdx === SETS_PER_EXERCISE - 1) {
-      playDigitalPingOnce(); // 5-second ping plays once
+function startTimer() {
+  if (isRunning) return;
+  isRunning = true;
+  clickSound.play();
+  timerInterval = setInterval(() => {
+    timeRemaining--;
+    totalElapsedSeconds++;
+
+    // 5-second beep before end
+    if (timeRemaining > 0 && timeRemaining <= 5) {
+      beepSound.play();
     }
 
-    isBreak = false;
-    setIdx += 1;
+    updateDisplay();
+    renderExercises();
 
-    if (setIdx >= SETS_PER_EXERCISE){
-      setIdx = 0;
-      exIdx += 1;
-      if (exIdx >= EXERCISES.length){
-        finished = true;
-        stop();
-        updateUI();
-        return;
+    if (timeRemaining <= 0) {
+      clearInterval(timerInterval);
+
+      if (isBreak) {
+        // If break ended, move to next exercise
+        currentExerciseIndex++;
+        if (currentExerciseIndex >= EXERCISES.length) {
+          currentExerciseIndex = 0;
+          currentSet++;
+          if (currentSet > TOTAL_SETS) {
+            statusDisplay.textContent = "Exercise completed.";
+            isRunning = false;
+            return;
+          }
+        }
+        isBreak = false;
+        timeRemaining = EXERCISE_TIME;
+      } else {
+        // If exercise ended, move to break
+        isBreak = true;
+        timeRemaining = BREAK_TIME;
+
+        // Trigger digital ping when leaving the 3rd break
+        if (currentExerciseIndex === 2) {
+          digitalPing.play();
+        }
       }
-      // Short tone cue for any other new-exercise transition
-      exerciseChangeSound();
+
+      updateSetIndicators();
+      updateDisplay();
+      renderExercises();
+      startTimer(); // auto-continue
     }
-    remaining = EXERCISE_SECS;
-  }
-  updateUI();
+  }, 1000);
 }
 
-// Timer loop
-function loop(){
-  remaining -= 1;
-  sinceStart += 1;
-
-  if (remaining > 0 && remaining <= 5){
-    countdownBeep(remaining);
-  }
-
-  if (remaining <= 0){
-    remaining = 0;
-    updateUI();
-    try { navigator.vibrate && navigator.vibrate([180,120,180]); } catch {}
-    phaseChime();
-    advance();
-  } else {
-    updateUI();
-  }
+function pauseTimer() {
+  if (!isRunning) return;
+  clickSound.play();
+  clearInterval(timerInterval);
+  isRunning = false;
 }
 
-// Controls
-function start(){
-  if (running || finished) return;
-  clickTone();
-  ensureAudio();
-  running = true;
-  startBtn.classList.add('active');
-  pauseBtn.classList.remove('active');
-  timerId = setInterval(loop, 1000);
-}
-function pause(){
-  if (!running) return;
-  clickTone();
-  running = false;
-  if (timerId){ clearInterval(timerId); timerId = null; }
-  pauseBtn.classList.add('active');
-  startBtn.classList.remove('active');
-}
-function stop(){
-  running = false;
-  if (timerId){ clearInterval(timerId); timerId = null; }
-  startBtn.classList.remove('active');
-  pauseBtn.classList.remove('active');
-}
-function resetAll(){
-  clickTone();
-  stop();
-  exIdx = 0; setIdx = 0; isBreak = false; finished = false;
-  remaining = EXERCISE_SECS; sinceStart = 0;
-  buildExerciseList();
-  buildDots();
-  updateUI();
+function resetTimer() {
+  clickSound.play();
+  clearInterval(timerInterval);
+  isRunning = false;
+  currentSet = 1;
+  currentExerciseIndex = 0;
+  isBreak = false;
+  timeRemaining = EXERCISE_TIME;
+  totalElapsedSeconds = 0;
+  updateDisplay();
+  renderExercises();
+  updateSetIndicators();
 }
 
-// Accordion toggle (if present)
-function toggleExercises(){
-  const collapsed = exerciseListEl.classList.toggle('collapsed');
-  exToggleBtn.setAttribute('aria-expanded', String(!collapsed));
-  exArrow.textContent = collapsed ? '▼' : '▲';
-  clickTone();
-}
+// ============================
+// INIT
+// ============================
+startBtn.addEventListener("click", startTimer);
+pauseBtn.addEventListener("click", pauseTimer);
+resetBtn.addEventListener("click", resetTimer);
 
-// Init
-document.addEventListener('DOMContentLoaded', () => {
-  // DOM refs
-  exerciseListEl = document.getElementById("exerciseList");
-  wheelProgress  = document.getElementById("wheelProgress");
-  phaseLabel     = document.getElementById("phaseLabel");
-  timeLabel      = document.getElementById("timeLabel");
-  setsDots       = document.getElementById("setsDots");
-  sinceStartEl   = document.getElementById("sinceStart");
-  startBtn       = document.getElementById("startBtn");
-  pauseBtn       = document.getElementById("pauseBtn");
-  resetBtn       = document.getElementById("resetBtn");
-  exToggleBtn    = document.getElementById("exToggle");
-  exArrow        = document.getElementById("exArrow");
-
-  // Build once
-  buildExerciseList();
-  buildDots();
-  updateUI();
-
-  // Events
-  startBtn.addEventListener('click', start);
-  pauseBtn.addEventListener('click', pause);
-  resetBtn.addEventListener('click', resetAll);
-  if (exToggleBtn) exToggleBtn.addEventListener('click', toggleExercises);
-
-  // Unlock audio on first touch (iOS)
-  window.addEventListener('touchstart', ensureAudio, { once:true });
-});
+updateDisplay();
+renderExercises();
+updateSetIndicators();
