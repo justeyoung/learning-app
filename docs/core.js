@@ -9,8 +9,8 @@ const EXERCISES = [
   "Reverse crunch"
 ];
 const SETS_PER_EXERCISE = 3;
-const EXERCISE_SECS = 60;
-const BREAK_SECS = 60;
+const EXERCISE_SECS = 8;
+const BREAK_SECS = 8;
 
 // --- State ---
 let exIdx = 0;            // 0..4 (5 exercises)
