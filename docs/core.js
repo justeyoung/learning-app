@@ -56,7 +56,7 @@ function countdownBeep(n){ ensureAudio(); const f={1:1000,2:950,3:900,4:850,5:80
 function exerciseChangeSound(){ ensureAudio(); tone(700,0.12,0.16,'square',0); tone(900,0.12,0.16,'square',0.20); tone(1100,0.12,0.16,'square',0.40); }
 
 // ===== Special alert: 5s Digital Ping (file contains the whole cue; play once) =====
-const digitalPing = new Audio('sounds/digital_ping.mp3'); // put the file here
+const digitalPing = new Audio('digital_ping.mp3'); // put the file here
 digitalPing.preload = 'auto';
 digitalPing.setAttribute('playsinline','');
 digitalPing.volume = 1.0;
