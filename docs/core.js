@@ -1,4 +1,4 @@
-// ===== Core Exercise Tracker (accordion, modern chime alert, Spotify-friendly, +15% tones) =====
+// ===== Core Exercise Tracker (Digital Ping alert, accordion, Spotify-friendly, +15% tones) =====
 
 // --- Config ---
 const EXERCISES = [
@@ -9,8 +9,10 @@ const EXERCISES = [
   "Reverse crunch"
 ];
 const SETS_PER_EXERCISE = 3;
-const EXERCISE_SECS = 8;
-const BREAK_SECS = 8;
+
+// *** TEST MODE: 10 seconds each ***
+const EXERCISE_SECS = 10;
+const BREAK_SECS = 10;
 
 // --- State ---
 let exIdx = 0;            // 0..4 (5 exercises)
@@ -26,7 +28,7 @@ let sinceStart = 0;
 let exerciseListEl, wheelProgress, phaseLabel, timeLabel, setsDots, sinceStartEl;
 let startBtn, pauseBtn, resetBtn, exToggleBtn, exArrow;
 
-// ===== Web Audio (tones that don't duck Spotify) =====
+// ===== Web Audio tones (don’t duck Spotify) =====
 let audioCtx = null;
 function ensureAudio(){
   if (!audioCtx){
@@ -36,7 +38,7 @@ function ensureAudio(){
 /** Base tone — all tone volumes boosted by +15% */
 function tone(freq = 950, dur = 0.1, vol = 0.14, type = 'square', when = 0){
   if (!audioCtx) return;
-  vol *= 1.15; // +15% louder globally (per your request)
+  vol *= 1.15; // +15% louder globally
   const t = audioCtx.currentTime + when;
   const o = audioCtx.createOscillator();
   const g = audioCtx.createGain();
@@ -51,18 +53,15 @@ function tone(freq = 950, dur = 0.1, vol = 0.14, type = 'square', when = 0){
 function clickTone(){ ensureAudio(); tone(1000, 0.06, 0.12, 'square'); }
 function phaseChime(){ ensureAudio(); tone(1200,.12,.16,'square',0); tone(800,.12,.16,'square',0.18); }
 function countdownBeep(n){ ensureAudio(); const f={1:1000,2:950,3:900,4:850,5:800}[n]||880; tone(f,0.09,0.14,'square'); }
-// (We keep exerciseChangeSound for general new-exercise cue)
 function exerciseChangeSound(){ ensureAudio(); tone(700,0.12,0.16,'square',0); tone(900,0.12,0.16,'square',0.20); tone(1100,0.12,0.16,'square',0.40); }
 
-// ===== Modern Chime (triple inside file; full volume; Spotify-friendly) =====
-const modernChime = new Audio('sounds/modern_chime.mp3');
-modernChime.preload = 'auto';
-modernChime.setAttribute('playsinline','');
-modernChime.volume = 1.0; // play at full device volume
-
-function playModernChimeOnce(){
-  // File already contains 3 chimes under 5s — play exactly once
-  try { modernChime.currentTime = 0; modernChime.play(); } catch {}
+// ===== Special alert: 5s Digital Ping (file contains the whole cue; play once) =====
+const digitalPing = new Audio('sounds/digital_ping.mp3'); // put the file here
+digitalPing.preload = 'auto';
+digitalPing.setAttribute('playsinline','');
+digitalPing.volume = 1.0;
+function playDigitalPingOnce(){
+  try { digitalPing.currentTime = 0; digitalPing.play(); } catch {}
 }
 
 // ===== UI builders =====
@@ -75,7 +74,6 @@ function buildExerciseList(){
     exerciseListEl.appendChild(item);
   });
 }
-
 function buildDots(){
   setsDots.innerHTML = "";
   for (let i = 0; i < SETS_PER_EXERCISE; i++){
@@ -151,10 +149,9 @@ function advance(){
     remaining = BREAK_SECS;
   } else {
     // Finished break -> start next set/exercise
-    // >>> SPECIAL CHIME: end of 3rd break of the 5 exercises (between Exercise 3 and 4)
-    // At this moment: exIdx === 2 (3rd exercise), setIdx === 2 (3rd set), isBreak === true
+    // SPECIAL ALERT: end of 3rd break (after Exercise 3 Set 3), i.e., exIdx===2 and setIdx===2 while in break
     if (exIdx === 2 && setIdx === SETS_PER_EXERCISE - 1) {
-      playModernChimeOnce();
+      playDigitalPingOnce(); // 5-second ping plays once
     }
 
     isBreak = false;
@@ -169,7 +166,7 @@ function advance(){
         updateUI();
         return;
       }
-      // General "new exercise" cue (short tones)
+      // Short tone cue for any other new-exercise transition
       exerciseChangeSound();
     }
     remaining = EXERCISE_SECS;
@@ -231,7 +228,7 @@ function resetAll(){
   updateUI();
 }
 
-// Accordion toggle (if you have the ▲/▼ button in HTML)
+// Accordion toggle (if present)
 function toggleExercises(){
   const collapsed = exerciseListEl.classList.toggle('collapsed');
   exToggleBtn.setAttribute('aria-expanded', String(!collapsed));
