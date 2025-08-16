@@ -1,86 +1,200 @@
-:root{
-  --bg:#111; --fg:#eee; --muted:#9aa0a6;
+// core.js — fix: reliable button wiring + full features (10s test)
+console.log("[core] loading…");
 
-  --ring-track:#2b2b2b;
-  --ring-ex:#ff2d55;   /* red */
-  --ring-br:#00aaff;   /* blue */
+// ===== Config (TEST) =====
+const EX_TIME = 10;     // exercise seconds
+const BR_TIME = 10;     // break seconds
+const TOTAL_SETS = 3;
 
-  --row-bg:#1f1f1f;
-  --row-muted:#2a2a2a;
-  --row-text:#ddd;
+const NAMES = [
+  "Extended Plank",
+  "Hollow Hold",
+  "Wrist to Knee Crunch",
+  "AB Roll Out",
+  "Reverse Crunch"
+];
 
-  --row-green:#16c060;      /* exercise (current) */
-  --row-green-dim:#109b4d;  /* completed */
-  --row-blue:#1e88ff;       /* break (current) */
-}
+window.addEventListener("DOMContentLoaded", () => {
+  console.log("[core] DOM ready");
 
-*{box-sizing:border-box}
-html,body{height:100%}
-body{margin:0;background:var(--bg);color:var(--fg);font-family:system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
-.wrap{max-width:700px;margin:24px auto;padding:16px}
-h1{text-align:center;margin:8px 0 12px;font-size:24px}
+  // ===== DOM =====
+  const statusEl = document.getElementById('status');
+  const timerEl  = document.getElementById('timer');
+  const sinceEl  = document.getElementById('since');
 
-/* Wheel */
-.wheel-wrap{position:relative;width:260px;height:260px;margin:12px auto}
-.wheel{width:100%;height:100%}
-.track{
-  fill:none;
-  stroke:var(--ring-track);
-  stroke-width:12;
-}
-.progress{
-  fill:none;
-  stroke:var(--ring-ex);
-  stroke-width:12;
-  stroke-linecap:round;
-  transform:rotate(-90deg);
-  transform-origin:50% 50%;
-  stroke-dasharray:0 999; /* will be set in JS */
-}
-.progress.break{ stroke:var(--ring-br); }
-.progress.exercise{ stroke:var(--ring-ex); }
+  const rows = [
+    document.getElementById('row0'),
+    document.getElementById('row1'),
+    document.getElementById('row2'),
+    document.getElementById('row3'),
+    document.getElementById('row4')
+  ];
 
-.wheel-center{
-  position:absolute; inset:0;
-  display:flex; flex-direction:column; align-items:center; justify-content:center;
-}
-#status{font-size:14px;opacity:.9;margin-bottom:6px}
-#timer{font-size:48px;font-weight:800;letter-spacing:1px}
+  const tics = [
+    document.getElementById('tic1'),
+    document.getElementById('tic2'),
+    document.getElementById('tic3')
+  ];
 
-/* Sets + since start */
-.sets-line{
-  display:flex; align-items:center; justify-content:center; gap:18px;
-  margin:6px 0 14px; flex-wrap:wrap;
-}
-.sets{display:flex;gap:10px;align-items:center}
-.tic{width:12px;height:12px;border-radius:50%;background:#333}
-.tic.done{background:var(--row-green)}
-.since{display:flex;gap:8px;align-items:center}
-.since .label{color:var(--muted)}
+  const progEl = document.getElementById('wheelProgress');
 
-/* Exercise rows (labelled list) */
-.rows{display:flex;flex-direction:column;gap:10px;margin:12px 0 8px;padding:0 12px}
-.row{
-  display:flex;align-items:center;min-height:44px;border-radius:10px;
-  background:var(--row-bg);color:var(--row-text);
-  padding:10px 14px;transition:background .18s ease, color .18s ease;
-  box-shadow: inset 0 0 0 1px #0006;
-}
-.row .name{font-size:16px}
-.row.current-ex{background:var(--row-green);color:#fff}
-.row.current-br{background:var(--row-blue);color:#fff}
-.row.done{background:var(--row-green-dim);color:#eaffef}
+  const startBtn = document.getElementById('startBtn');
+  const pauseBtn = document.getElementById('pauseBtn');
+  const resetBtn = document.getElementById('resetBtn');
 
-/* Buttons */
-.btns{display:flex;gap:12px;justify-content:center;margin:14px 0 8px}
-button{background:#2f2f2f;color:#fff;border:0;border-radius:12px;padding:10px 18px;font-size:16px}
-button:active{transform:translateY(1px)}
-.home-wrap{text-align:center;margin-top:6px}
-a.home{display:inline-block;background:#2f2f2f;color:#fff;padding:10px 18px;border-radius:12px;text-decoration:none}
+  // Quick sanity log
+  console.log("[core] elements:", {
+    statusEl: !!statusEl, timerEl: !!timerEl, sinceEl: !!sinceEl,
+    rows: rows.every(Boolean), tics: tics.every(Boolean),
+    progEl: !!progEl, startBtn: !!startBtn, pauseBtn: !!pauseBtn, resetBtn: !!resetBtn
+  });
 
-/* Mobile */
-@media (max-width:420px){
-  .wheel-wrap{width:220px;height:220px}
-  #timer{font-size:42px}
-  .row{min-height:40px}
-}
+  // ===== State =====
+  let exIdx = 0;               // 0..4
+  let setIdx = 1;              // 1..3
+  let isExercise = true;       // true=exercise, false=break
+  let left = EX_TIME;          // seconds left in current phase
+  let since = 0;               // total seconds since start
+  let tickId = null;
+
+  // ===== Sounds (short so they don't duck Spotify) =====
+  const safeAudio = (src, vol=1.0) => {
+    const a = new Audio(src);
+    a.preload = "auto";
+    a.setAttribute("playsinline", "");
+    a.volume = vol;
+    return a;
+  };
+
+  const clickS = safeAudio("click.mp3", 0.6);
+  const beepS  = safeAudio("countdown_beep.mp3", 0.75);
+  const chgS   = safeAudio("digital_ping.mp3", 0.85);
+
+  const voiceCue = safeAudio(encodeURI("new_exercise.mp3"), 1.0);
+  const bellCue  = safeAudio(encodeURI("church_bell.mp3"), 1.0);
+
+  const play = a => { try { a.currentTime = 0; a.play(); } catch(e) { /* ignore */ } };
+  const playClick  = () => play(clickS);
+  const playBeep   = () => play(beepS);
+  const playChange = () => play(chgS);
+
+  function playVoiceBellTwice(){
+    const go = () => { play(voiceCue); play(bellCue); };
+    go(); setTimeout(go, 2500);
+  }
+
+  // ===== UI =====
+  const fmt = s => `${String(Math.floor(s/60)).padStart(2,"0")}:${String(s%60).padStart(2,"0")}`;
+
+  const R = 54; // matches r in SVG
+  const C = 2 * Math.PI * R;
+
+  function updateWheel(){
+    if (!progEl) return;
+    const total = isExercise ? EX_TIME : BR_TIME;
+    const ratio = Math.max(0, Math.min(1, 1 - (left / total)));
+    progEl.style.strokeDasharray = `${C} ${C}`;
+    progEl.style.strokeDashoffset = String(C * (1 - ratio));
+    progEl.classList.toggle('break', !isExercise);
+    progEl.classList.toggle('exercise', isExercise);
+  }
+
+  function paintRows(){
+    rows.forEach((r,i)=>{
+      if (!r) return;
+      r.className = 'row';
+      if (i < exIdx) r.classList.add('done');                 // completed earlier
+      if (i === exIdx) r.classList.add(isExercise ? 'current-ex' : 'current-br');
+    });
+  }
+
+  function paintTics(){
+    tics.forEach((t,i)=>{
+      if (!t) return;
+      t.classList.toggle('done', i < (setIdx - 1));
+    });
+  }
+
+  function draw(){
+    if (statusEl) statusEl.textContent = isExercise ? NAMES[exIdx] : "Break";
+    if (timerEl)  timerEl.textContent  = fmt(left);
+    if (sinceEl)  sinceEl.textContent  = fmt(since);
+    updateWheel();
+    paintRows();
+    paintTics();
+  }
+
+  // ===== Logic =====
+  function tick(){
+    left -= 1;
+    since += 1;
+
+    // last 5 seconds beep
+    if (left <= 5 && left > 0) playBeep();
+
+    // Cue 10s before the end of Break #3 (with 10s breaks, that's at start of that break)
+    if (!isExercise && exIdx === 2 && setIdx === 3 && left === 10) {
+      playVoiceBellTwice();
+    }
+
+    if (left <= 0){
+      playChange();
+
+      if (isExercise){
+        // switch to break
+        isExercise = false;
+        left = BR_TIME;
+      } else {
+        // break -> next exercise / set / finish
+        exIdx++;
+        if (exIdx >= NAMES.length){
+          exIdx = 0;
+          setIdx++;
+          if (setIdx > TOTAL_SETS){
+            stop();
+            if (statusEl) statusEl.textContent = "Exercise completed.";
+            left = 0;
+            draw();
+            return;
+          }
+        }
+        isExercise = true;
+        left = EX_TIME;
+      }
+    }
+
+    draw();
+  }
+
+  // ===== Controls =====
+  function start(){ 
+    if (tickId) return; 
+    playClick(); 
+    tickId = setInterval(tick, 1000); 
+    console.log("[core] start");
+  }
+  function pause(){ 
+    playClick(); 
+    if (tickId){ clearInterval(tickId); tickId = null; } 
+    console.log("[core] pause");
+  }
+  function stop(){ 
+    if (tickId){ clearInterval(tickId); tickId = null; } 
+  }
+  function reset(){ 
+    playClick(); 
+    stop(); 
+    exIdx=0; setIdx=1; isExercise=true; left=EX_TIME; since=0; 
+    draw(); 
+    console.log("[core] reset");
+  }
+
+  // ===== Wire buttons safely =====
+  if (startBtn) startBtn.addEventListener('click', start);
+  if (pauseBtn) pauseBtn.addEventListener('click', pause);
+  if (resetBtn) resetBtn.addEventListener('click', reset);
+
+  // Initial paint
+  draw();
+  console.log("[core] ready");
+});
