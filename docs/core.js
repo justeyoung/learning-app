@@ -1,4 +1,4 @@
-// ===== Core Exercise Tracker (voice cue 10s before end of 3rd break; robust scheduling + priming) =====
+// ===== Core Exercise Tracker (voice + church bell cue at T-10s of 3rd break; robust + primed) =====
 
 // --- Config ---
 const EXERCISES = [
@@ -10,16 +10,16 @@ const EXERCISES = [
 ];
 const SETS_PER_EXERCISE = 3;
 
-// *** TEST DURATIONS (you used 20s) ***
-const EXERCISE_SECS = 17;
-const BREAK_SECS   = 17;
+// *** TEST DURATIONS ***
+const EXERCISE_SECS = 20;  // change to 60 for real use
+const BREAK_SECS   = 20;   // change to 60 for real use
 
-// Speak this many seconds BEFORE that special break ends
-const LEAD_CUE_SECONDS = 10; // fires at T-10s of the 3rd break
+// Special cue fires this many seconds BEFORE the special break ends
+const LEAD_CUE_SECONDS = 10;
 
-// Which break? (after exercise index 2, set index 2, i.e., 3rd exercise, 3rd set)
+// The special break = after Exercise index 2 (3rd), Set index 2 (3rd set)
 const SPECIAL_EX_IDX = 2;
-const SPECIAL_SET_IDX = SETS_PER_EXERCISE - 1;
+const SPECIAL_SET_IDX = SETS_PER_EXERCISE - 1; // 2
 
 // --- State ---
 let exIdx = 0;
@@ -39,7 +39,7 @@ let leadCueTimeout = null;
 let exerciseListEl, wheelProgress, phaseLabel, timeLabel, setsDots, sinceStartEl;
 let startBtn, pauseBtn, resetBtn, exToggleBtn, exArrow;
 
-// ===== Web Audio tones (Spotify-friendly) =====
+// ===== Web Audio tones (don’t duck Spotify) =====
 let audioCtx = null;
 function ensureAudio(){
   if (!audioCtx){
@@ -65,30 +65,39 @@ function phaseChime(){ ensureAudio(); tone(1200,.12,.16,'square',0); tone(800,.1
 function countdownBeep(n){ ensureAudio(); const f={1:1000,2:950,3:900,4:850,5:800}[n]||880; tone(f,0.09,0.14,'square'); }
 function exerciseChangeSound(){ ensureAudio(); tone(700,0.12,0.16,'square',0); tone(900,0.12,0.16,'square',0.20); tone(1100,0.12,0.16,'square',0.40); }
 
-// ===== Voice MP3 cue (same folder as core.js) =====
+// ===== Voice + Church Bell cue (same folder as core.js) =====
 const NEW_EXERCISE_SRC = encodeURI("new exercise coming up.mp3");
+const CHURCH_BELL_SRC  = encodeURI("church_bell.mp3");
+
 const newExerciseAudio = new Audio(NEW_EXERCISE_SRC);
 newExerciseAudio.preload = "auto";
 newExerciseAudio.setAttribute("playsinline", "");
 newExerciseAudio.volume = 1.0;
 
-// Prime the MP3 after first user interaction (prevents autoplay blocks)
-let voicePrimed = false;
-function primeVoice(){
-  if (voicePrimed) return;
-  voicePrimed = true;
-  try {
-    newExerciseAudio.play().then(()=>{
-      newExerciseAudio.pause();
-      newExerciseAudio.currentTime = 0;
-    }).catch(()=>{ /* ignore */ });
-  } catch { /* ignore */ }
+const churchBellAudio = new Audio(CHURCH_BELL_SRC);
+churchBellAudio.preload = "auto";
+churchBellAudio.setAttribute("playsinline", "");
+churchBellAudio.volume = 1.0;
+
+// Prime both files after the first user interaction to bypass autoplay limits
+let audioPrimed = false;
+function primeCueAudio(){
+  if (audioPrimed) return;
+  audioPrimed = true;
+  // Try to start and immediately pause to unlock playback
+  const primeOne = a => a.play().then(()=>{ a.pause(); a.currentTime = 0; }).catch(()=>{});
+  primeOne(newExerciseAudio);
+  primeOne(churchBellAudio);
 }
+
+// Play voice + bell together
 function playNewExerciseCue(){
   try {
-    newExerciseAudio.pause();
-    newExerciseAudio.currentTime = 0;
+    newExerciseAudio.pause(); newExerciseAudio.currentTime = 0;
+    churchBellAudio.pause();  churchBellAudio.currentTime  = 0;
+    // Start voice, then layer bell 200ms later for presence
     newExerciseAudio.play().catch(()=>{});
+    setTimeout(()=> churchBellAudio.play().catch(()=>{}), 200);
   } catch {}
 }
 
@@ -121,7 +130,7 @@ function fmt(sec){
   return `${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
 }
 
-// Wheel
+// Wheel (EXERCISE=RED, BREAK=BLUE)
 function updateWheel(){
   if (!wheelProgress) return;
   const r = 110, C = 2 * Math.PI * r;
@@ -131,6 +140,8 @@ function updateWheel(){
   wheelProgress.style.strokeDashoffset = `${C * (1 - ratio)}`;
   wheelProgress.setAttribute('stroke', isBreak ? '#00aaff' : '#ff2d55');
 }
+
+// Highlights (no rebuild)
 function updateExerciseHighlights(){
   if (!exerciseListEl) return;
   const items = Array.from(exerciseListEl.children);
@@ -143,6 +154,8 @@ function updateExerciseHighlights(){
     }
   });
 }
+
+// Dots (no rebuild)
 function updateDots(){
   if (!setsDots) return;
   const dots = setsDots.children;
@@ -152,6 +165,8 @@ function updateDots(){
     if (isBreak && i === setIdx) dots[i].classList.add('done');
   }
 }
+
+// UI update
 function updateUI(){
   if (phaseLabel && timeLabel){
     if (finished){
@@ -164,7 +179,10 @@ function updateUI(){
     }
   }
   if (sinceStartEl) sinceStartEl.textContent = fmt(sinceStart);
-  updateWheel(); updateExerciseHighlights(); updateDots();
+
+  updateWheel();
+  updateExerciseHighlights();
+  updateDots();
 }
 
 // Clear any pending lead cue (on reset/phase change)
@@ -186,7 +204,7 @@ function advance(){
     leadCueFired = false;
     clearLeadCueTimeout();
 
-    // If this is the special break (after Exercise 3, Set 3) schedule the cue
+    // If this is the special break (after Exercise 3, Set 3), schedule the cue
     if (exIdx === SPECIAL_EX_IDX && setIdx === SPECIAL_SET_IDX){
       const delayMs = Math.max(0, (BREAK_SECS - LEAD_CUE_SECONDS) * 1000);
       leadCueTimeout = setTimeout(() => {
@@ -230,7 +248,7 @@ function loop(){
     countdownBeep(remaining);
   }
 
-  // SAFETY CHECK: if we missed scheduling, fire when remaining <= lead
+  // SAFETY CHECK: if scheduled cue didn't fire (e.g., throttled), fire when remaining <= lead
   if (isBreak && exIdx === SPECIAL_EX_IDX && setIdx === SPECIAL_SET_IDX && !leadCueFired){
     if (remaining <= LEAD_CUE_SECONDS && remaining > 0){
       leadCueFired = true;
@@ -255,7 +273,7 @@ function start(){
   if (running || finished) return;
   clickTone();
   ensureAudio();
-  primeVoice(); // unlock MP3 playback on first gesture
+  primeCueAudio(); // unlock MP3 playback on first gesture
   running = true;
   if (startBtn) startBtn.classList.add('active');
   if (pauseBtn) pauseBtn.classList.remove('active');
@@ -309,7 +327,7 @@ document.addEventListener('DOMContentLoaded', () => {
   pauseBtn       = document.getElementById("pauseBtn");
   resetBtn       = document.getElementById("resetBtn");
   exToggleBtn    = document.getElementById("exToggle") || document.querySelector(".ex-accordion");
-  exArrow        = document.getElementById("exArrow") || (exToggleBtn ? exToggleBtn.querySelector(".arrow") : null);
+  exArrow        = document.getElementById("exArrow")  || (exToggleBtn ? exToggleBtn.querySelector(".arrow") : null);
 
   buildExerciseList();
   buildDots();
@@ -321,8 +339,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (resetBtn) resetBtn.addEventListener('click', resetAll);
   if (exToggleBtn) exToggleBtn.addEventListener('click', toggleExercises);
 
-  // Also prime voice on the first touch (iOS)
-  window.addEventListener('touchstart', primeVoice, { once:true });
-  // And ensure audio context is created on first touch
-  window.addEventListener('touchstart', ensureAudio, { once:true });
+  // Also prime on first touch (iOS)
+  window.addEventListener('touchstart', primeCueAudio, { once:true });
+  window.addEventListener('touchstart', ensureAudio,   { once:true });
 });
