@@ -11,8 +11,8 @@ const EXERCISES = [
 const SETS_PER_EXERCISE = 3;
 
 // *** TEST MODE: 10 seconds each ***
-const EXERCISE_SECS = 10;
-const BREAK_SECS = 10;
+const EXERCISE_SECS = 20;
+const BREAK_SECS = 20;
 
 // Lead time for voice cue (seconds before a phase ends)
 const LEAD_CUE_SECONDS = 10; // <- your request
