@@ -1,4 +1,4 @@
-// ===== Core Exercise Tracker (speech cue, accordion fixed, 5 exercises restored, 10s test, Spotify-friendly) =====
+// ===== Core Exercise Tracker (mp3 cue, 10s test, Spotify-friendly) =====
 
 // --- Config ---
 const EXERCISES = [
@@ -15,34 +15,32 @@ const EXERCISE_SECS = 10;
 const BREAK_SECS = 10;
 
 // --- State ---
-let exIdx = 0;            // 0..4 (5 exercises)
-let setIdx = 0;           // 0..2 (3 sets per exercise)
-let isBreak = false;      // false=exercise, true=break
+let exIdx = 0;
+let setIdx = 0;
+let isBreak = false;
 let running = false;
 let finished = false;
 let timerId = null;
 let remaining = EXERCISE_SECS;
 let sinceStart = 0;
 
-// --- DOM refs (assigned on DOMContentLoaded) ---
+// --- DOM refs ---
 let exerciseListEl, wheelProgress, phaseLabel, timeLabel, setsDots, sinceStartEl;
 let startBtn, pauseBtn, resetBtn, exToggleBtn, exArrow;
 
-// ===== Web Audio tones (don’t duck Spotify) =====
+// ===== Web Audio tones (Spotify-friendly) =====
 let audioCtx = null;
 function ensureAudio(){
   if (!audioCtx){
     try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch {}
   }
 }
-/** Base tone — all tone volumes boosted by +15% */
 function tone(freq = 950, dur = 0.1, vol = 0.14, type = 'square', when = 0){
   if (!audioCtx) return;
-  vol *= 1.15; // +15% louder globally
+  vol *= 1.2; // +20% louder globally
   const t = audioCtx.currentTime + when;
-  const o = document.createElement ? audioCtx.createOscillator() : null;
-  const g = document.createElement ? audioCtx.createGain() : null;
-  if (!o || !g) return;
+  const o = audioCtx.createOscillator();
+  const g = audioCtx.createGain();
   o.type = type; o.frequency.value = freq;
   g.gain.value = 0.0001;
   o.connect(g).connect(audioCtx.destination);
@@ -56,35 +54,14 @@ function phaseChime(){ ensureAudio(); tone(1200,.12,.16,'square',0); tone(800,.1
 function countdownBeep(n){ ensureAudio(); const f={1:1000,2:950,3:900,4:850,5:800}[n]||880; tone(f,0.09,0.14,'square'); }
 function exerciseChangeSound(){ ensureAudio(); tone(700,0.12,0.16,'square',0); tone(900,0.12,0.16,'square',0.20); tone(1100,0.12,0.16,'square',0.40); }
 
-// ===== Speech Synthesis (spoken cue: "New exercise coming up") =====
-let cachedVoice = null;
-function pickMaleVoice(){
-  const voices = window.speechSynthesis.getVoices() || [];
-  // Try some common male-ish voice names first
-  const prefs = ["daniel","alex","fred","male","google uk english male","english (great britain)"];
-  let v = voices.find(v => prefs.some(p => v.name.toLowerCase().includes(p)));
-  if (!v) {
-    // Try any English voice as fallback
-    v = voices.find(v => /en(-|_)?(us|gb|au|ca|uk)?/i.test(v.lang)) || voices[0] || null;
-  }
-  return v || null;
-}
-function speakMessage(msg){
-  // If TTS is busy, cancel the queue so this message plays promptly
-  try { window.speechSynthesis.cancel(); } catch {}
-  const u = new SpeechSynthesisUtterance(msg);
-  u.rate = 1;    // normal speed
-  u.pitch = 1;   // neutral pitch
-  u.volume = 1;  // full device volume
-  if (cachedVoice) u.voice = cachedVoice;
-  window.speechSynthesis.speak(u);
-}
-// Preload voices (some browsers load voices async)
-if ('speechSynthesis' in window) {
-  const tryPick = () => { cachedVoice = pickMaleVoice(); };
-  window.speechSynthesis.addEventListener('voiceschanged', tryPick);
-  // Try once immediately too
-  tryPick();
+// ===== New Exercise Coming Up MP3 =====
+let newExerciseAudio = new Audio("new exercise coming up.mp3");
+newExerciseAudio.volume = 1.0; // max device volume
+function playNewExerciseCue(){
+  // Restart from beginning if already playing
+  newExerciseAudio.pause();
+  newExerciseAudio.currentTime = 0;
+  newExerciseAudio.play().catch(e => console.warn("Audio play failed:", e));
 }
 
 // ===== UI builders =====
@@ -108,15 +85,13 @@ function buildDots(){
     setsDots.appendChild(d);
   }
 }
-
-// Helpers
 function fmt(sec){
   sec = Math.max(0, Math.round(sec));
   const m = Math.floor(sec/60), s = sec % 60;
   return `${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
 }
 
-// Wheel (EXERCISE=RED, BREAK=BLUE)
+// Wheel
 function updateWheel(){
   if (!wheelProgress) return;
   const r = 110, C = 2 * Math.PI * r;
@@ -126,8 +101,6 @@ function updateWheel(){
   wheelProgress.style.strokeDashoffset = `${C * (1 - ratio)}`;
   wheelProgress.setAttribute('stroke', isBreak ? '#00aaff' : '#ff2d55');
 }
-
-// Highlights (no rebuild)
 function updateExerciseHighlights(){
   if (!exerciseListEl) return;
   const items = Array.from(exerciseListEl.children);
@@ -140,19 +113,15 @@ function updateExerciseHighlights(){
     }
   });
 }
-
-// Dots (no rebuild)
 function updateDots(){
   if (!setsDots) return;
   const dots = setsDots.children;
   for (let i = 0; i < dots.length; i++){
     dots[i].classList.toggle('done', i < setIdx || finished);
     dots[i].classList.toggle('current', i === setIdx && !isBreak && !finished);
-    if (isBreak && i === setIdx) dots[i].classList.add('done'); // mark just-completed set
+    if (isBreak && i === setIdx) dots[i].classList.add('done');
   }
 }
-
-// UI update
 function updateUI(){
   if (phaseLabel && timeLabel){
     if (finished){
@@ -174,15 +143,12 @@ function updateUI(){
 // Phase progression
 function advance(){
   if (!isBreak){
-    // Finished exercise -> enter break
     isBreak = true;
     remaining = BREAK_SECS;
   } else {
-    // Finished break -> about to start next set/exercise
-    // SPECIAL: end of the 3rd break (after Exercise 3, Set 3) → speak cue
-    // At this moment: exIdx === 2 (3rd exercise), setIdx === 2 (3rd set), isBreak === true
+    // Special cue at end of Exercise 3 / Set 3 break
     if (exIdx === 2 && setIdx === SETS_PER_EXERCISE - 1) {
-      speakMessage("New exercise coming up");
+      playNewExerciseCue();
     }
 
     isBreak = false;
@@ -197,7 +163,6 @@ function advance(){
         updateUI();
         return;
       }
-      // Short tone cue for other exercise transitions
       exerciseChangeSound();
     }
     remaining = EXERCISE_SECS;
@@ -211,7 +176,7 @@ function loop(){
   sinceStart += 1;
 
   if (remaining > 0 && remaining <= 5){
-    countdownBeep(remaining); // last-5 seconds beeps
+    countdownBeep(remaining);
   }
 
   if (remaining <= 0){
@@ -254,13 +219,13 @@ function resetAll(){
   stop();
   exIdx = 0; setIdx = 0; isBreak = false; finished = false;
   remaining = EXERCISE_SECS; sinceStart = 0;
-  buildExerciseList();   // rebuild list so 5 bars are present
-  buildDots();           // rebuild dots
+  buildExerciseList();
+  buildDots();
   if (exerciseListEl) exerciseListEl.classList.remove('collapsed');
   updateUI();
 }
 
-// Accordion toggle (works with either #exToggle or .ex-accordion)
+// Accordion
 function toggleExercises(){
   if (!exerciseListEl) return;
   const collapsed = exerciseListEl.classList.toggle('collapsed');
@@ -269,15 +234,8 @@ function toggleExercises(){
   clickTone();
 }
 
-// --- Safe query helpers (ID fallback to class-based) ---
-function queryAccordionBits(){
-  exToggleBtn = document.getElementById("exToggle") || document.querySelector(".ex-accordion") || null;
-  exArrow = document.getElementById("exArrow") || (exToggleBtn ? exToggleBtn.querySelector(".arrow") : null);
-}
-
-// Init
+// --- Init ---
 document.addEventListener('DOMContentLoaded', () => {
-  // DOM refs
   exerciseListEl = document.getElementById("exerciseList");
   wheelProgress  = document.getElementById("wheelProgress");
   phaseLabel     = document.getElementById("phaseLabel");
@@ -287,23 +245,18 @@ document.addEventListener('DOMContentLoaded', () => {
   startBtn       = document.getElementById("startBtn");
   pauseBtn       = document.getElementById("pauseBtn");
   resetBtn       = document.getElementById("resetBtn");
-  queryAccordionBits();
+  exToggleBtn    = document.getElementById("exToggle") || document.querySelector(".ex-accordion");
+  exArrow        = document.getElementById("exArrow") || (exToggleBtn ? exToggleBtn.querySelector(".arrow") : null);
 
-  // Build once (restores the 5 exercises)
   buildExerciseList();
   buildDots();
-
-  // Force the list expanded on load
   if (exerciseListEl) exerciseListEl.classList.remove('collapsed');
-
   updateUI();
 
-  // Events
   if (startBtn) startBtn.addEventListener('click', start);
   if (pauseBtn) pauseBtn.addEventListener('click', pause);
   if (resetBtn) resetBtn.addEventListener('click', resetAll);
   if (exToggleBtn) exToggleBtn.addEventListener('click', toggleExercises);
 
-  // Unlock audio on first touch (iOS)
   window.addEventListener('touchstart', ensureAudio, { once:true });
 });
