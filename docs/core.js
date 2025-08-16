@@ -1,160 +1,86 @@
-// core.js — 5 labelled rows, 10s test, voice+bell cue
-console.log("CORE rows-10s-A");
+:root{
+  --bg:#111; --fg:#eee; --muted:#9aa0a6;
 
-// ===== Config (TEST) =====
-const EX_TIME = 10;     // exercise seconds
-const BR_TIME = 10;     // break seconds
-const TOTAL_SETS = 3;
+  --ring-track:#2b2b2b;
+  --ring-ex:#ff2d55;   /* red */
+  --ring-br:#00aaff;   /* blue */
 
-const NAMES = [
-  "Extended Plank",
-  "Hollow Hold",
-  "Wrist to Knee Crunch",
-  "AB Roll Out",
-  "Reverse Crunch"
-];
+  --row-bg:#1f1f1f;
+  --row-muted:#2a2a2a;
+  --row-text:#ddd;
 
-// ===== State =====
-let exIdx = 0;               // 0..4
-let setIdx = 1;              // 1..3
-let isExercise = true;       // true=exercise, false=break
-let left = EX_TIME;          // seconds left in current phase
-let since = 0;               // total seconds since start
-let timerId = null;
-
-// ===== DOM =====
-const face    = document.getElementById('face');
-const statusEl= document.getElementById('status');
-const timerEl = document.getElementById('timer');
-const sinceEl = document.getElementById('since');
-
-const rows = [
-  document.getElementById('row0'),
-  document.getElementById('row1'),
-  document.getElementById('row2'),
-  document.getElementById('row3'),
-  document.getElementById('row4')
-];
-
-const tics = [
-  document.getElementById('tic1'),
-  document.getElementById('tic2'),
-  document.getElementById('tic3')
-];
-
-const startBtn = document.getElementById('startBtn');
-const pauseBtn = document.getElementById('pauseBtn');
-const resetBtn = document.getElementById('resetBtn');
-
-// ===== Sounds (short so they don't duck Spotify) =====
-const clickS = new Audio("click.mp3");              clickS.volume = 0.6;  clickS.preload="auto";
-const beepS  = new Audio("countdown_beep.mp3");     beepS.volume  = 0.75; beepS.preload="auto";
-const chgS   = new Audio("digital_ping.mp3");       chgS.volume   = 0.85; chgS.preload="auto";
-
-const voiceCue = new Audio(encodeURI("new_exercise.mp3")); voiceCue.volume=1.0; voiceCue.preload="auto"; voiceCue.setAttribute("playsinline","");
-const bellCue  = new Audio(encodeURI("church_bell.mp3"));  bellCue.volume =1.0; bellCue.preload="auto";  bellCue.setAttribute("playsinline","");
-
-function playClick(){ try{clickS.currentTime=0; clickS.play();}catch{} }
-function playBeep(){  try{beepS.currentTime=0;  beepS.play(); }catch{} }
-function playChange(){try{chgS.currentTime=0;   chgS.play();  }catch{} }
-
-function playVoiceBellTwice(){
-  const go=()=>{ try{voiceCue.currentTime=0; voiceCue.play();}catch{} try{bellCue.currentTime=0; bellCue.play();}catch{} };
-  go(); setTimeout(go, 2500);
+  --row-green:#16c060;      /* exercise (current) */
+  --row-green-dim:#109b4d;  /* completed */
+  --row-blue:#1e88ff;       /* break (current) */
 }
 
-// ===== UI =====
-const fmt = s => `${String(Math.floor(s/60)).padStart(2,"0")}:${String(s%60).padStart(2,"0")}`;
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
+.wrap{max-width:700px;margin:24px auto;padding:16px}
+h1{text-align:center;margin:8px 0 12px;font-size:24px}
 
-function paintRing(){
-  face.style.borderColor = isExercise ? "var(--ring-ex)" : "var(--ring-br)";
+/* Wheel */
+.wheel-wrap{position:relative;width:260px;height:260px;margin:12px auto}
+.wheel{width:100%;height:100%}
+.track{
+  fill:none;
+  stroke:var(--ring-track);
+  stroke-width:12;
 }
-function paintRows(){
-  rows.forEach((r,i)=>{
-    r.classList.remove('current-ex','current-br','done');
-    if (i < exIdx) r.classList.add('done');               // completed earlier in the session
-    if (i === exIdx) r.classList.add(isExercise ? 'current-ex' : 'current-br');
-  });
+.progress{
+  fill:none;
+  stroke:var(--ring-ex);
+  stroke-width:12;
+  stroke-linecap:round;
+  transform:rotate(-90deg);
+  transform-origin:50% 50%;
+  stroke-dasharray:0 999; /* will be set in JS */
 }
-function paintTics(){
-  tics.forEach((t,i)=>{
-    t.classList.toggle('done', i < (setIdx - 1));
-  });
+.progress.break{ stroke:var(--ring-br); }
+.progress.exercise{ stroke:var(--ring-ex); }
+
+.wheel-center{
+  position:absolute; inset:0;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
 }
-function draw(){
-  statusEl.textContent = isExercise ? NAMES[exIdx] : "Break";
-  timerEl.textContent  = fmt(left);
-  sinceEl.textContent  = fmt(since);
-  paintRing();
-  paintRows();
-  paintTics();
+#status{font-size:14px;opacity:.9;margin-bottom:6px}
+#timer{font-size:48px;font-weight:800;letter-spacing:1px}
+
+/* Sets + since start */
+.sets-line{
+  display:flex; align-items:center; justify-content:center; gap:18px;
+  margin:6px 0 14px; flex-wrap:wrap;
 }
+.sets{display:flex;gap:10px;align-items:center}
+.tic{width:12px;height:12px;border-radius:50%;background:#333}
+.tic.done{background:var(--row-green)}
+.since{display:flex;gap:8px;align-items:center}
+.since .label{color:var(--muted)}
 
-// ===== Logic =====
-function tick(){
-  left -= 1;
-  since += 1;
-
-  // last 5 seconds beep
-  if (left <= 5 && left > 0) playBeep();
-
-  // Cue 10s before the end of Break #3 (with 10s breaks, that's at the start of that break)
-  if (!isExercise && exIdx === 2 && setIdx === 3 && left === 10) {
-    playVoiceBellTwice();
-  }
-
-  if (left <= 0){
-    playChange();
-
-    if (isExercise){
-      // switch to break
-      isExercise = false;
-      left = BR_TIME;
-    } else {
-      // break -> next exercise / set / finish
-      exIdx++;
-      if (exIdx >= NAMES.length){
-        exIdx = 0;
-        setIdx++;
-        if (setIdx > TOTAL_SETS){
-          stop();
-          statusEl.textContent = "Exercise completed.";
-          left = 0;
-          draw();
-          return;
-        }
-      }
-      isExercise = true;
-      left = EX_TIME;
-    }
-  }
-
-  draw();
+/* Exercise rows (labelled list) */
+.rows{display:flex;flex-direction:column;gap:10px;margin:12px 0 8px;padding:0 12px}
+.row{
+  display:flex;align-items:center;min-height:44px;border-radius:10px;
+  background:var(--row-bg);color:var(--row-text);
+  padding:10px 14px;transition:background .18s ease, color .18s ease;
+  box-shadow: inset 0 0 0 1px #0006;
 }
+.row .name{font-size:16px}
+.row.current-ex{background:var(--row-green);color:#fff}
+.row.current-br{background:var(--row-blue);color:#fff}
+.row.done{background:var(--row-green-dim);color:#eaffef}
 
-function start(){
-  if (timerId) return;
-  playClick();
-  timerId = setInterval(tick, 1000);
-}
-function pause(){
-  playClick();
-  if (timerId){ clearInterval(timerId); timerId = null; }
-}
-function stop(){
-  if (timerId){ clearInterval(timerId); timerId = null; }
-}
-function reset(){
-  playClick();
-  stop();
-  exIdx = 0; setIdx = 1; isExercise = true; left = EX_TIME; since = 0;
-  draw();
-}
+/* Buttons */
+.btns{display:flex;gap:12px;justify-content:center;margin:14px 0 8px}
+button{background:#2f2f2f;color:#fff;border:0;border-radius:12px;padding:10px 18px;font-size:16px}
+button:active{transform:translateY(1px)}
+.home-wrap{text-align:center;margin-top:6px}
+a.home{display:inline-block;background:#2f2f2f;color:#fff;padding:10px 18px;border-radius:12px;text-decoration:none}
 
-// ===== Events =====
-startBtn.addEventListener('click', start);
-pauseBtn.addEventListener('click', pause);
-resetBtn.addEventListener('click', reset);
-
-// ===== Init =====
-draw();
+/* Mobile */
+@media (max-width:420px){
+  .wheel-wrap{width:220px;height:220px}
+  #timer{font-size:42px}
+  .row{min-height:40px}
+}
