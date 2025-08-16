@@ -1,143 +1,56 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>Core Exercise Tracker | INLINE 10s</title>
-  <style>
-    :root{
-      --bg:#111;--fg:#eee;--muted:#9aa0a6;
-      --bar:#3a3a3a;--bar-active:#1db954;--bar-break:#1e88ff;--bar-done:#28c76f;
-      --ring-ex:#ff2d55;--ring-br:#00aaff;
-    }
-    html,body{height:100%}body{margin:0;background:var(--bg);color:var(--fg);font-family:system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
-    .wrap{max-width:640px;margin:24px auto;padding:16px}
-    h1{margin:8px 0 12px;text-align:center;font-size:24px}
-    .face{width:240px;height:240px;margin:16px auto;border-radius:50%;border:14px solid var(--ring-ex);display:flex;flex-direction:column;align-items:center;justify-content:center}
-    #status{font-size:14px;opacity:.85;margin-bottom:6px}
-    #timer{font-size:44px;font-weight:700;letter-spacing:1px}
-    .meta{display:flex;gap:8px;justify-content:center;align-items:center;margin:8px 0 16px}
-    .meta .label{color:var(--muted)}
-    .sets{display:flex;gap:10px;justify-content:center;align-items:center;margin:6px 0 14px}
-    .tic{width:12px;height:12px;border-radius:50%;background:var(--bar)}
-    .tic.done{background:var(--bar-done)}
-    .bars{display:flex;gap:8px;justify-content:center;margin:10px 0}
-    .bar{height:10px;flex:1;min-width:60px;background:var(--bar);border-radius:6px}
-    .bar.active{background:var(--bar-active)}
-    .bar.break{background:var(--bar-break)}
-    .bar.done{background:var(--bar-done)}
-    .btns{display:flex;gap:12px;justify-content:center;margin:14px 0 8px}
-    button,a.home{background:#2f2f2f;color:#fff;border:0;border-radius:10px;padding:10px 18px;font-size:16px;text-decoration:none}
-    a.home{display:inline-block;margin:8px auto 0}
-  </style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Core Exercise Tracker</title>
+  <link rel="stylesheet" href="core.css" />
 </head>
 <body>
   <main class="wrap">
     <h1>Core Exercise Tracker</h1>
 
+    <!-- Timer face -->
     <div class="face" id="face">
       <div id="status">Extended Plank</div>
       <div id="timer">00:10</div>
     </div>
 
-    <div class="sets" aria-label="Sets">
-      <span class="tic" id="tic1"></span>
-      <span class="tic" id="tic2"></span>
-      <span class="tic" id="tic3"></span>
+    <!-- Sets & since start -->
+    <div class="sets-line">
+      <div class="sets" aria-label="Sets">
+        <span class="tic" id="tic1"></span>
+        <span class="tic" id="tic2"></span>
+        <span class="tic" id="tic3"></span>
+      </div>
+      <div class="since">
+        <span class="label">Since start:</span>
+        <span id="since">00:00</span>
+      </div>
     </div>
 
-    <div class="meta">
-      <span class="label">Since start:</span>
-      <span id="since">00:00</span>
+    <!-- 5 labelled rows -->
+    <div id="exerciseList" class="rows" aria-label="Exercises">
+      <div class="row" id="row0"><span class="name">Extended Plank</span></div>
+      <div class="row" id="row1"><span class="name">Hollow Hold</span></div>
+      <div class="row" id="row2"><span class="name">Wrist to Knee Crunch</span></div>
+      <div class="row" id="row3"><span class="name">AB Roll Out</span></div>
+      <div class="row" id="row4"><span class="name">Reverse Crunch</span></div>
     </div>
 
-    <div class="bars" aria-label="Exercises">
-      <div class="bar" id="bar0"></div>
-      <div class="bar" id="bar1"></div>
-      <div class="bar" id="bar2"></div>
-      <div class="bar" id="bar3"></div>
-      <div class="bar" id="bar4"></div>
-    </div>
-
+    <!-- Controls -->
     <div class="btns">
       <button id="startBtn">Start</button>
       <button id="pauseBtn">Pause</button>
       <button id="resetBtn">Reset</button>
     </div>
 
-    <div style="text-align:center">
+    <div class="home-wrap">
       <a class="home" href="index.html">Home</a>
     </div>
   </main>
 
-  <!-- INLINE 10s JS (no cache) -->
-  <script>
-  console.log("INLINE CORE TEST 10s LOADED");
-  // --- Config (TEST) ---
-  const EX_TIME=10, BR_TIME=10, TOTAL_SETS=3;
-  const NAMES=["Extended Plank","Hollow Hold","Wrist to Knee Crunch","AB Roll Out","Reverse Crunch"];
-
-  // --- State ---
-  let exIdx=0, setIdx=1, isExercise=true, left=EX_TIME, since=0, id=null;
-
-  // --- DOM ---
-  const face=document.getElementById('face');
-  const timerEl=document.getElementById('timer');
-  const statusEl=document.getElementById('status');
-  const sinceEl=document.getElementById('since');
-  const bars=[...Array(5)].map((_,i)=>document.getElementById('bar'+i));
-  const tics=[document.getElementById('tic1'),document.getElementById('tic2'),document.getElementById('tic3')];
-  const startBtn=document.getElementById('startBtn'), pauseBtn=document.getElementById('pauseBtn'), resetBtn=document.getElementById('resetBtn');
-
-  // --- Sounds (short; won’t duck Spotify) ---
-  const clickS=new Audio("click.mp3"); clickS.volume=0.6;
-  const beepS=new Audio("countdown_beep.mp3"); beepS.volume=0.75;
-  const chgS=new Audio("digital_ping.mp3"); chgS.volume=0.85;
-  const voice=new Audio(encodeURI("new_exercise.mp3")); voice.volume=1.0; voice.preload="auto"; voice.setAttribute("playsinline","");
-  const bell =new Audio(encodeURI("church_bell.mp3"));  bell.volume=1.0;  bell.preload="auto";  bell.setAttribute("playsinline","");
-
-  function fmt(s){const m=String(Math.floor(s/60)).padStart(2,"0"); const ss=String(s%60).padStart(2,"0"); return m+":"+ss;}
-  function ring(){face.style.borderColor=isExercise?"var(--ring-ex)":"var(--ring-br)";}
-  function drawBars(){
-    bars.forEach((b,i)=>{b.className="bar"; if(i<exIdx)b.classList.add("done"); if(i===exIdx)b.classList.add(isExercise?"active":"break");});
-  }
-  function drawTics(){tics.forEach((t,i)=>{t.className="tic"; if(i<setIdx-1)t.classList.add("done");});}
-  function draw(){timerEl.textContent=fmt(left); statusEl.textContent=isExercise?NAMES[exIdx]:"Break"; sinceEl.textContent=fmt(since); ring(); drawBars(); drawTics();}
-
-  function playNewExerciseCueTwice(){ // voice + bell twice
-    const playPair=()=>{ try{voice.currentTime=0; voice.play();}catch{} try{bell.currentTime=0; bell.play();}catch{} };
-    playPair(); setTimeout(playPair, 2500);
-  }
-
-  function tick(){
-    left--; since++;
-    if(left<=5 && left>0){ try{beepS.currentTime=0;beepS.play();}catch{} }
-    // cue 10s before end of 3rd break (with 10s break, this is at start of that break)
-    if(!isExercise && exIdx===2 && setIdx===3 && left===10){ playNewExerciseCueTwice(); }
-
-    if(left<=0){
-      try{chgS.currentTime=0; chgS.play();}catch{}
-      if(isExercise){ // -> break
-        isExercise=false; left=BR_TIME;
-      }else{         // break -> next
-        exIdx++;
-        if(exIdx>=NAMES.length){ exIdx=0; setIdx++; if(setIdx> TOTAL_SETS){ clearInterval(id); id=null; statusEl.textContent="Exercise completed."; left=0; draw(); return; } }
-        isExercise=true; left=EX_TIME;
-      }
-    }
-    draw();
-  }
-
-  function start(){ if(id) return; try{clickS.currentTime=0;clickS.play();}catch{} id=setInterval(tick,1000); }
-  function pause(){ try{clickS.currentTime=0;clickS.play();}catch{} if(id){clearInterval(id); id=null;} }
-  function reset(){ try{clickS.currentTime=0;clickS.play();}catch{} if(id){clearInterval(id); id=null;} exIdx=0; setIdx=1; isExercise=true; left=EX_TIME; since=0; draw(); }
-
-  startBtn.addEventListener('click',start);
-  pauseBtn.addEventListener('click',pause);
-  resetBtn.addEventListener('click',reset);
-
-  // initial paint
-  draw();
-  </script>
+  <!-- IMPORTANT: cache-bust to dodge Safari cache -->
+  <script src="core.js?v=rows-10s-A"></script>
 </body>
 </html>
