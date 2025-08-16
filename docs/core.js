@@ -1,4 +1,4 @@
-// ===== Core Exercise Tracker (voice cue 10s before end of 3rd break, 10s test, Spotify-friendly) =====
+// ===== Core Exercise Tracker (voice cue 10s before end of 3rd break; robust scheduling + priming) =====
 
 // --- Config ---
 const EXERCISES = [
@@ -10,12 +10,16 @@ const EXERCISES = [
 ];
 const SETS_PER_EXERCISE = 3;
 
-// *** TEST MODE: 10 seconds each ***
-const EXERCISE_SECS = 20;
-const BREAK_SECS = 20;
+// *** TEST DURATIONS (you used 20s) ***
+const EXERCISE_SECS = 17;
+const BREAK_SECS   = 17;
 
-// Lead time for voice cue (seconds before a phase ends)
-const LEAD_CUE_SECONDS = 10; // <- your request
+// Speak this many seconds BEFORE that special break ends
+const LEAD_CUE_SECONDS = 10; // fires at T-10s of the 3rd break
+
+// Which break? (after exercise index 2, set index 2, i.e., 3rd exercise, 3rd set)
+const SPECIAL_EX_IDX = 2;
+const SPECIAL_SET_IDX = SETS_PER_EXERCISE - 1;
 
 // --- State ---
 let exIdx = 0;
@@ -26,8 +30,10 @@ let finished = false;
 let timerId = null;
 let remaining = EXERCISE_SECS;
 let sinceStart = 0;
-// one-time gate for the voice cue during the special break
+
+// one-time gate + timeout handle for the special cue
 let leadCueFired = false;
+let leadCueTimeout = null;
 
 // --- DOM refs ---
 let exerciseListEl, wheelProgress, phaseLabel, timeLabel, setsDots, sinceStartEl;
@@ -59,9 +65,25 @@ function phaseChime(){ ensureAudio(); tone(1200,.12,.16,'square',0); tone(800,.1
 function countdownBeep(n){ ensureAudio(); const f={1:1000,2:950,3:900,4:850,5:800}[n]||880; tone(f,0.09,0.14,'square'); }
 function exerciseChangeSound(){ ensureAudio(); tone(700,0.12,0.16,'square',0); tone(900,0.12,0.16,'square',0.20); tone(1100,0.12,0.16,'square',0.40); }
 
-// ===== Voice MP3 cue =====
-const newExerciseAudio = new Audio("new exercise coming up.mp3"); // same folder as core.js
+// ===== Voice MP3 cue (same folder as core.js) =====
+const NEW_EXERCISE_SRC = encodeURI("new exercise coming up.mp3");
+const newExerciseAudio = new Audio(NEW_EXERCISE_SRC);
+newExerciseAudio.preload = "auto";
+newExerciseAudio.setAttribute("playsinline", "");
 newExerciseAudio.volume = 1.0;
+
+// Prime the MP3 after first user interaction (prevents autoplay blocks)
+let voicePrimed = false;
+function primeVoice(){
+  if (voicePrimed) return;
+  voicePrimed = true;
+  try {
+    newExerciseAudio.play().then(()=>{
+      newExerciseAudio.pause();
+      newExerciseAudio.currentTime = 0;
+    }).catch(()=>{ /* ignore */ });
+  } catch { /* ignore */ }
+}
 function playNewExerciseCue(){
   try {
     newExerciseAudio.pause();
@@ -145,17 +167,42 @@ function updateUI(){
   updateWheel(); updateExerciseHighlights(); updateDots();
 }
 
+// Clear any pending lead cue (on reset/phase change)
+function clearLeadCueTimeout(){
+  if (leadCueTimeout){
+    clearTimeout(leadCueTimeout);
+    leadCueTimeout = null;
+  }
+}
+
 // Phase progression
 function advance(){
   if (!isBreak){
     // Enter break
     isBreak = true;
     remaining = BREAK_SECS;
-    // Reset the one-time cue gate at the start of *every* break
+
+    // Reset cue gate and clear any old timeout
     leadCueFired = false;
+    clearLeadCueTimeout();
+
+    // If this is the special break (after Exercise 3, Set 3) schedule the cue
+    if (exIdx === SPECIAL_EX_IDX && setIdx === SPECIAL_SET_IDX){
+      const delayMs = Math.max(0, (BREAK_SECS - LEAD_CUE_SECONDS) * 1000);
+      leadCueTimeout = setTimeout(() => {
+        // Double-check we're still in the same break/context
+        if (isBreak && exIdx === SPECIAL_EX_IDX && setIdx === SPECIAL_SET_IDX && !finished && !leadCueFired){
+          leadCueFired = true;
+          playNewExerciseCue();
+        }
+      }, delayMs);
+    }
+
   } else {
-    // Leaving break -> next set/exercise
+    // Leave break -> next set/exercise
     isBreak = false;
+    clearLeadCueTimeout(); // stop any scheduled cue when the break ends
+
     setIdx += 1;
     if (setIdx >= SETS_PER_EXERCISE){
       setIdx = 0;
@@ -173,7 +220,7 @@ function advance(){
   updateUI();
 }
 
-// Timer loop
+// Timer loop (with safety check to catch throttled timers)
 function loop(){
   remaining -= 1;
   sinceStart += 1;
@@ -183,16 +230,13 @@ function loop(){
     countdownBeep(remaining);
   }
 
-  // SPECIAL: Speak 10s before end of the 3rd break (exIdx=2, setIdx=2, in break)
-  if (
-    isBreak &&
-    exIdx === 2 &&
-    setIdx === SETS_PER_EXERCISE - 1 &&
-    remaining === LEAD_CUE_SECONDS &&
-    !leadCueFired
-  ){
-    leadCueFired = true;
-    playNewExerciseCue();
+  // SAFETY CHECK: if we missed scheduling, fire when remaining <= lead
+  if (isBreak && exIdx === SPECIAL_EX_IDX && setIdx === SPECIAL_SET_IDX && !leadCueFired){
+    if (remaining <= LEAD_CUE_SECONDS && remaining > 0){
+      leadCueFired = true;
+      playNewExerciseCue();
+      clearLeadCueTimeout();
+    }
   }
 
   if (remaining <= 0){
@@ -211,6 +255,7 @@ function start(){
   if (running || finished) return;
   clickTone();
   ensureAudio();
+  primeVoice(); // unlock MP3 playback on first gesture
   running = true;
   if (startBtn) startBtn.classList.add('active');
   if (pauseBtn) pauseBtn.classList.remove('active');
@@ -236,6 +281,7 @@ function resetAll(){
   exIdx = 0; setIdx = 0; isBreak = false; finished = false;
   remaining = EXERCISE_SECS; sinceStart = 0;
   leadCueFired = false;
+  clearLeadCueTimeout();
   buildExerciseList();
   buildDots();
   if (exerciseListEl) exerciseListEl.classList.remove('collapsed');
@@ -275,5 +321,8 @@ document.addEventListener('DOMContentLoaded', () => {
   if (resetBtn) resetBtn.addEventListener('click', resetAll);
   if (exToggleBtn) exToggleBtn.addEventListener('click', toggleExercises);
 
+  // Also prime voice on the first touch (iOS)
+  window.addEventListener('touchstart', primeVoice, { once:true });
+  // And ensure audio context is created on first touch
   window.addEventListener('touchstart', ensureAudio, { once:true });
 });
