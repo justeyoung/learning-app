@@ -10,13 +10,22 @@
   <main class="wrap">
     <h1>Core Exercise Tracker</h1>
 
-    <!-- Timer face -->
-    <div class="face" id="face">
-      <div id="status">Extended Plank</div>
-      <div id="timer">00:10</div>
+    <!-- Timer wheel -->
+    <div class="wheel-wrap">
+      <svg class="wheel" viewBox="0 0 120 120" aria-hidden="true">
+        <!-- track -->
+        <circle class="track" cx="60" cy="60" r="54" />
+        <!-- animated progress -->
+        <circle id="wheelProgress" class="progress exercise" cx="60" cy="60" r="54" />
+      </svg>
+      <!-- centered labels over the wheel -->
+      <div class="wheel-center">
+        <div id="status">Extended Plank</div>
+        <div id="timer">00:10</div>
+      </div>
     </div>
 
-    <!-- Sets & since start -->
+    <!-- Sets + since start -->
     <div class="sets-line">
       <div class="sets" aria-label="Sets">
         <span class="tic" id="tic1"></span>
@@ -50,7 +59,7 @@
     </div>
   </main>
 
-  <!-- IMPORTANT: cache-bust to dodge Safari cache -->
-  <script src="core.js?v=rows-10s-A"></script>
+  <!-- cache-bust to defeat Safari caching -->
+  <script src="core.js?v=fix-wheel-10s"></script>
 </body>
 </html>
