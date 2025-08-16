@@ -1,162 +1,149 @@
-/* ===== Container / Night mode ===== */
-.core.container{
-  max-width: 560px;
-  margin: 0 auto;
-  padding: 16px;
-  text-align: center;
-  color: #fff;
-  box-sizing: border-box;
+:root{
+  --bg:#111;
+  --fg:#eee;
+  --muted:#9aa0a6;
+
+  --ring-ex:#ff2d55; /* red */
+  --ring-br:#00aaff; /* blue */
+
+  --row-bg:#1f1f1f;
+  --row-muted:#2a2a2a;
+  --row-text:#ddd;
+
+  --row-green:#16c060;      /* exercise (current) */
+  --row-green-dim:#109b4d;  /* completed */
+  --row-blue:#1e88ff;       /* break (current) */
 }
 
-.title{
-  font-size: 1.4rem;
-  margin: 8px 0 14px;
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0;
+  background:var(--bg);
+  color:var(--fg);
+  font-family:system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
 }
 
-/* ===== Time wheel ===== */
-.wheel-wrap{
-  position: relative;
-  width: 260px;
-  height: 260px;
-  margin: 4px auto 10px;
-}
-.wheel{
-  display:block;
-  width:100%;
-  height:100%;
-  transform: rotate(-90deg);
-  pointer-events:none;
-}
-.progress{
-  stroke-dasharray: 691; /* r=110 */
-  stroke-dashoffset: 0;
-  transition: stroke-dashoffset .08s linear, stroke .2s ease;
-}
-.wheel-center{
-  position:absolute; inset:0;
-  display:flex; flex-direction:column;
-  align-items:center; justify-content:center;
-  pointer-events:none;
-}
-.phase-label{ font-size:1.05rem; margin-bottom:4px; }
-.time-label { font-size:2.4rem; font-weight:800; letter-spacing:.5px; }
-
-/* ===== Sets (tic-tacs) ===== */
-.sets-block{ margin: 6px 0 6px; }
-.sets-title{ margin-bottom:6px; font-weight:800; }
-.sets-dots{
-  display:flex; justify-content:center; gap:8px;
-}
-.dot{
-  width:22px; height:10px; border-radius:6px;
-  background:hsl(220, 13%, 20%);
-  border:1px solid hsl(220, 13%, 16%);
-  opacity:.95;
-}
-.dot.current{
-  box-shadow:0 0 0 2px rgba(41,209,122,.35);
-  animation:pulse 1.2s infinite;
-}
-.dot.done{
-  /* ~25% brighter green via HSL */
-  background: hsl(140, 80%, 55%);
-  border-color: hsl(140, 80%, 55%);
-}
-@keyframes pulse{ 0%,100%{transform:scale(1)} 50%{transform:scale(1.12)} }
-
-/* ===== Since start (one line) ===== */
-#sinceStartWrapper{
-  display:inline-flex; align-items:center; gap:.35em;
-  font-size:.95rem; color:#9aa0a6;
-  margin: 6px 0 8px; white-space:nowrap;
-}
-#sinceStartWrapper span:first-child{ font-weight:500; opacity:.9; }
-
-/* ===== Accordion for exercises ===== */
-.ex-accordion{
-  -webkit-appearance:none; appearance:none;
-  display:flex; align-items:center; justify-content:space-between;
-  width:100%; max-width:560px; margin: 6px auto 6px;
-  padding:10px 12px;
-  background:#1b1d21; color:#e6e6e6;
-  border:1px solid #262a33; border-radius:10px;
-  font-weight:800; cursor:pointer;
-}
-.ex-accordion .arrow{ font-size:.95rem; opacity:.9; }
-
-/* Collapsible list */
-.exercise-list{
-  max-width:560px; margin: 6px auto 10px;
-  display:grid; grid-template-columns:1fr; gap:8px;
-  overflow:hidden;
-  /* IMPORTANT: give it a big default height so it can collapse */
-  max-height: 1000px;
-  opacity: 1;
-  transition:max-height .25s ease, opacity .2s ease, margin .2s ease;
-}
-.exercise-list.collapsed{
-  max-height:0 !important;
-  opacity:0;
-  margin-top:0;
-  margin-bottom:0;
+.wrap{
+  max-width:700px;
+  margin:24px auto;
+  padding:16px;
 }
 
-/* Exercise items */
-.exercise-item{
-  background:#111; border:1px solid #262a33;
-  border-radius:10px; padding:8px 12px;
-  text-align:left; font-weight:700;
+h1{
+  text-align:center;
+  margin:8px 0 12px;
+  font-size:24px;
 }
-.exercise-item .name{ color:#e6e6e6; opacity:.9; }
 
-/* Current (exercise) = digital green on black */
-.exercise-item.current{
-  background:#000; border-color:hsl(140, 100%, 45%);
+/* Timer face */
+.face{
+  width:260px;
+  height:260px;
+  margin:16px auto 12px;
+  border:16px solid var(--ring-ex);
+  border-radius:50%;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
 }
-.exercise-item.current .name{
-  color:hsl(140, 100%, 55%);
-  text-shadow:0 0 6px hsla(140,100%,55%,.8);
+#status{
+  font-size:14px;
+  opacity:.9;
+  margin-bottom:6px;
+}
+#timer{
+  font-size:48px;
   font-weight:800;
+  letter-spacing:1px;
 }
 
-/* Break highlight = digital blue on black */
-.exercise-item.break-current{
-  background:#000; border-color:hsl(200, 100%, 50%);
+/* Sets + since start */
+.sets-line{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:18px;
+  margin:6px 0 14px;
+  flex-wrap:wrap;
 }
-.exercise-item.break-current .name{
-  color:hsl(200, 100%, 60%);
-  text-shadow:0 0 6px hsla(200,100%,60%,.85);
-  font-weight:800;
+.sets{display:flex;gap:10px;align-items:center}
+.tic{
+  width:12px;height:12px;border-radius:50%;
+  background:#333;
+}
+.tic.done{background:var(--row-green)}
+.since{display:flex;gap:8px;align-items:center}
+.since .label{color:var(--muted)}
+
+/* Exercise rows (vertical list with labels) */
+.rows{
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  margin:12px 0 8px;
+  padding:0 12px;
+}
+.row{
+  display:flex;
+  align-items:center;
+  min-height:44px;
+  border-radius:10px;
+  background:var(--row-bg);
+  color:var(--row-text);
+  padding:10px 14px;
+  transition:background .18s ease, color .18s ease;
+  box-shadow: inset 0 0 0 1px #0006;
+}
+.row .name{font-size:16px}
+
+/* Current exercise (green) */
+.row.current-ex{
+  background:var(--row-green);
+  color:#fff;
+}
+/* Current break (blue) */
+.row.current-br{
+  background:var(--row-blue);
+  color:#fff;
+}
+/* Completed (dimmer green) */
+.row.done{
+  background:var(--row-green-dim);
+  color:#eaffef;
 }
 
-/* ===== Controls (one row) – BELOW the list ===== */
-.controls{
-  display:flex; justify-content:center; gap:6px;
-  margin: 8px 0 14px;
+/* Buttons */
+.btns{
+  display:flex;
+  gap:12px;
+  justify-content:center;
+  margin:14px 0 8px;
 }
-.ctrl{
-  -webkit-appearance:none; appearance:none;
-  background:#2f2f2f; color:#fff;
-  border:1px solid #2b2b2b; border-radius:10px;
-  padding:6px 0; margin:0; min-width:110px;
-  font-size:.95rem; font-weight:800; line-height:1.2;
-  cursor:pointer; transition:background .15s, transform .05s, filter .15s;
+button{
+  background:#2f2f2f;
+  color:#fff;
+  border:0;
+  border-radius:12px;
+  padding:10px 18px;
+  font-size:16px;
 }
-.ctrl:hover{ filter:brightness(1.1) }
-.ctrl:active{ transform:translateY(1px) }
-.ctrl.active{ background:#ff2d55; border-color:#ff2d55 }
+button:active{transform:translateY(1px)}
 
-/* ===== Home button ===== */
-.home-btn{
-  display:inline-block; background:#2b2f36; color:#fff;
-  padding:10px 16px; border-radius:10px; text-decoration:none;
-  border:1px solid #262a33;
+.home-wrap{text-align:center;margin-top:6px}
+a.home{
+  display:inline-block;
+  background:#2f2f2f;
+  color:#fff;
+  padding:10px 18px;
+  border-radius:12px;
+  text-decoration:none;
 }
-.home-btn:hover{ background:#3a3f48 }
 
-/* ===== Small screens ===== */
-@media (max-width: 380px){
-  .wheel-wrap{ width:220px; height:220px; }
-  .time-label{ font-size:2rem; }
-  .ctrl{ min-width:96px; font-size:.9rem; }
+/* Mobile tweaks */
+@media (max-width:420px){
+  .face{width:220px;height:220px;border-width:14px}
+  #timer{font-size:42px}
+  .row{min-height:40px}
 }
