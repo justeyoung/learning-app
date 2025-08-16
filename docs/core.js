@@ -1,43 +1,72 @@
-// core.js
+// ===== Core Exercise Tracker (bars restored + reliable accordion + voice+bell cue @ T-10s of Break 3) =====
 
-// ====== Timer Variables ======
-let timer;
-let timeLeft = 0;
-let isRunning = false;
+// ---------- CONFIG ----------
+const EXERCISES = [
+  "Extended Plank",
+  "Hollow Hold",
+  "Wrist to Knee Crunch",
+  "AB Roll Out",
+  "Reverse Crunch"
+];
+const TOTAL_SETS = 3;
+
+// Test durations (change to 60 for real use)
+const EXERCISE_SECS = 20;
+const BREAK_SECS   = 20;
+
+// Special voice/bell cue timing
+const LEAD_CUE_SECONDS = 10;     // speak this many seconds before the end
+const SPECIAL_EX_IDX   = 2;      // after 3rd exercise
+const SPECIAL_SET_IDX  = TOTAL_SETS - 1; // after 3rd set
+
+// ---------- STATE ----------
+let exIdx = 0;          // 0..4
+let setIdx = 0;         // 0..(TOTAL_SETS-1)
+let isBreak = false;
+let running = false;
+let finished = false;
+let timerId = null;
+let remaining = EXERCISE_SECS;
 let sinceStart = 0;
 
-// ====== Exercise Tracking ======
-const exercises = [
-  "Extended Plank",
-  "Side Plank",
-  "Leg Raise",
-  "Flutter Kick",
-  "Mountain Climbers"
-];
+// One-time gate + timeout for the special cue
+let leadCueFired = false;
+let leadCueTimeout = null;
 
-let currentExerciseIndex = 0;
-let currentSet = 1;
-let totalSets = 3;
-let inBreak = false;
+// ---------- DOM ----------
+let timeLabel, sinceStartLabel, phaseLabel;
+let wheelProgress;
+let exerciseListEl, setsEl;
+let startBtn, pauseBtn, resetBtn, toggleBtn, toggleArrow;
 
-// ====== Audio Elements ======
-const clickSound = new Audio("click.mp3");
-clickSound.preload = "auto";
-clickSound.setAttribute("playsinline", "");
-clickSound.volume = 0.5;
+// ---------- AUDIO (non-ducking tones) ----------
+let audioCtx = null;
+function ensureAudio(){
+  if (!audioCtx) {
+    try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch {}
+  }
+}
+function tone(freq=950, dur=0.1, vol=0.14, type='square', when=0){
+  if (!audioCtx) return;
+  vol *= 1.2; // +20%
+  const t = audioCtx.currentTime + when;
+  const o = audioCtx.createOscillator();
+  const g = audioCtx.createGain();
+  o.type = type; o.frequency.value = freq;
+  g.gain.value = 0.0001;
+  o.connect(g).connect(audioCtx.destination);
+  o.start(t);
+  g.gain.exponentialRampToValueAtTime(vol, t + 0.01);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  o.stop(t + dur + 0.02);
+}
+function clickTone(){ ensureAudio(); tone(1000, 0.06, 0.12, 'square'); }
+function phaseChime(){ ensureAudio(); tone(1200,.12,.16,'square',0); tone(800,.12,.16,'square',0.18); }
+function countdownBeep(n){ ensureAudio(); const f={1:1000,2:950,3:900,4:850,5:800}[n]||880; tone(f,0.09,0.14,'square'); }
+function exerciseChangeSound(){ ensureAudio(); tone(700,0.12,0.16,'square',0); tone(900,0.12,0.16,'square',0.20); tone(1100,0.12,0.16,'square',0.40); }
 
-const countdownBeep = new Audio("beep.mp3");
-countdownBeep.preload = "auto";
-countdownBeep.setAttribute("playsinline", "");
-countdownBeep.volume = 0.6;
-
-const exerciseChangeSound = new Audio("digital_ping.mp3");
-exerciseChangeSound.preload = "auto";
-exerciseChangeSound.setAttribute("playsinline", "");
-exerciseChangeSound.volume = 0.7;
-
-// ===== Voice + Church Bell cue =====
-const NEW_EXERCISE_SRC = encodeURI("new_exercise.mp3");   // updated filename
+// ---------- VOICE + CHURCH BELL (files in SAME folder as core.js) ----------
+const NEW_EXERCISE_SRC = encodeURI("new_exercise.mp3");
 const CHURCH_BELL_SRC  = encodeURI("church_bell.mp3");
 
 const newExerciseAudio = new Audio(NEW_EXERCISE_SRC);
@@ -50,188 +79,263 @@ churchBellAudio.preload = "auto";
 churchBellAudio.setAttribute("playsinline", "");
 churchBellAudio.volume = 1.0;
 
-// ====== DOM Elements ======
-const timerDisplay = document.getElementById("time");
-const sinceStartDisplay = document.getElementById("sinceStart");
-const exerciseTitle = document.getElementById("exerciseTitle");
-const exerciseList = document.getElementById("exerciseList");
-const setIndicators = document.getElementById("setIndicators");
-const progressCircle = document.querySelector(".progress");
-const startBtn = document.getElementById("startBtn");
-const pauseBtn = document.getElementById("pauseBtn");
-const resetBtn = document.getElementById("resetBtn");
-const toggleExercises = document.getElementById("toggleExercises");
+// Prime both on first gesture (iOS autoplay policy)
+let audioPrimed = false;
+function primeCueAudio(){
+  if (audioPrimed) return;
+  audioPrimed = true;
+  const prime = a => a.play().then(()=>{ a.pause(); a.currentTime=0; }).catch(()=>{});
+  prime(newExerciseAudio);
+  prime(churchBellAudio);
+}
+function playNewExerciseCue(){
+  try {
+    newExerciseAudio.pause(); newExerciseAudio.currentTime = 0;
+    churchBellAudio.pause();  churchBellAudio.currentTime  = 0;
+    newExerciseAudio.play().catch(()=>{});
+    setTimeout(()=> churchBellAudio.play().catch(()=>{}), 200);
+  } catch {}
+}
 
-// ====== Render Exercise List ======
-function renderExercises() {
-  exerciseList.innerHTML = "";
-  exercises.forEach((ex, i) => {
-    const li = document.createElement("li");
-    li.textContent = ex;
-    li.classList.add("exercise-item");
-    if (i === currentExerciseIndex) {
-      li.classList.add(inBreak ? "active-break" : "active-exercise");
-    }
-    exerciseList.appendChild(li);
+// ---------- BUILDERS (5 bars + sets) ----------
+function buildExerciseBars(){
+  if (!exerciseListEl) return;
+  exerciseListEl.innerHTML = "";
+  EXERCISES.forEach((name, i) => {
+    const row = document.createElement("div");
+    row.className = "exercise-bar";
+    const label = document.createElement("div");
+    label.className = "exercise-name";
+    label.textContent = name;
+    row.appendChild(label);
+    exerciseListEl.appendChild(row);
   });
 }
 
-// ====== Render Set Indicators ======
-function renderSets() {
-  setIndicators.innerHTML = "";
-  for (let i = 1; i <= totalSets; i++) {
-    const bar = document.createElement("div");
-    bar.classList.add("set-bar");
-    if (i < currentSet) {
-      bar.classList.add("completed");
-    }
-    if (i === currentSet) {
-      bar.classList.add("current");
-    }
-    setIndicators.appendChild(bar);
+function buildSets(){
+  if (!setsEl) return;
+  setsEl.innerHTML = "";
+  for (let i=0;i<TOTAL_SETS;i++){
+    const d = document.createElement("div");
+    d.className = "set-dot";
+    d.dataset.idx = i;
+    setsEl.appendChild(d);
   }
 }
 
-// ====== Start Timer ======
-function startTimer(duration) {
-  clearInterval(timer);
-  timeLeft = duration;
-  updateTimerDisplay();
-  timer = setInterval(() => {
-    timeLeft--;
-    sinceStart++;
-    updateTimerDisplay();
-    updateSinceStart();
-
-    // play 5 sec countdown
-    if (timeLeft <= 5 && timeLeft > 0) {
-      countdownBeep.currentTime = 0;
-      countdownBeep.play();
-    }
-
-    // trigger new exercise cue 10 sec before 3rd break finishes
-    if (
-      inBreak &&
-      currentExerciseIndex === 2 && // after 3rd exercise
-      timeLeft === 10
-    ) {
-      newExerciseAudio.currentTime = 0;
-      churchBellAudio.currentTime = 0;
-      newExerciseAudio.play();
-      churchBellAudio.play();
-    }
-
-    if (timeLeft <= 0) {
-      clearInterval(timer);
-      handleNext();
-    }
-  }, 1000);
+// ---------- UI HELPERS ----------
+function fmt(sec){
+  sec = Math.max(0, Math.round(sec));
+  const m = Math.floor(sec/60), s = sec % 60;
+  return `${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
 }
 
-// ====== Update Timer Display ======
-function updateTimerDisplay() {
-  let minutes = Math.floor(timeLeft / 60)
-    .toString()
-    .padStart(2, "0");
-  let seconds = (timeLeft % 60).toString().padStart(2, "0");
-  timerDisplay.textContent = `${minutes}:${seconds}`;
+function updateWheel(){
+  if (!wheelProgress) return;
+  const r = 110, C = 2*Math.PI*r;
+  const total = isBreak ? BREAK_SECS : EXERCISE_SECS;
+  const ratio = finished ? 1 : (1 - (remaining / total));
+  wheelProgress.style.strokeDasharray = `${C}`;
+  wheelProgress.style.strokeDashoffset = `${C * (1 - ratio)}`;
+  wheelProgress.setAttribute('stroke', isBreak ? '#00aaff' : '#ff2d55'); // blue break / red exercise
+}
 
-  let progress = ((inBreak ? 60 : 60) - timeLeft) / 60; // normalized
-  progressCircle.style.setProperty("--progress", progress);
+function updateBars(){
+  if (!exerciseListEl) return;
+  const rows = Array.from(exerciseListEl.children);
+  rows.forEach((row, i) => {
+    row.classList.remove("current", "break-current", "completed");
+    if (i < exIdx) row.classList.add("completed");
+    if (i === exIdx){
+      row.classList.add(isBreak ? "break-current" : "current");
+    }
+  });
+}
 
-  if (inBreak) {
-    progressCircle.classList.add("break");
-    progressCircle.classList.remove("exercise");
-  } else {
-    progressCircle.classList.add("exercise");
-    progressCircle.classList.remove("break");
+function updateSetDots(){
+  if (!setsEl) return;
+  const dots = Array.from(setsEl.children);
+  dots.forEach((d, i) => {
+    d.classList.toggle("done", i < setIdx || finished);
+    d.classList.toggle("current", i === setIdx && !isBreak && !finished);
+    if (isBreak && i === setIdx) d.classList.add("done");
+  });
+}
+
+function updateUI(){
+  if (phaseLabel) {
+    if (finished) phaseLabel.innerHTML = `<strong>Exercise completed.</strong>`;
+    else phaseLabel.innerHTML = `<strong>${isBreak ? "Break" : EXERCISES[exIdx]}</strong>`;
+  }
+  if (timeLabel) timeLabel.textContent = fmt(remaining);
+  if (sinceStartLabel) sinceStartLabel.textContent = fmt(sinceStart);
+
+  updateWheel();
+  updateBars();
+  updateSetDots();
+}
+
+// Clear any pending cue timer
+function clearLeadCueTimeout(){
+  if (leadCueTimeout) {
+    clearTimeout(leadCueTimeout);
+    leadCueTimeout = null;
   }
 }
 
-// ====== Update Since Start ======
-function updateSinceStart() {
-  let minutes = Math.floor(sinceStart / 60)
-    .toString()
-    .padStart(2, "0");
-  let seconds = (sinceStart % 60).toString().padStart(2, "0");
-  sinceStartDisplay.textContent = `${minutes}:${seconds}`;
+// ---------- PHASE PROGRESSION ----------
+function scheduleLeadCueIfSpecialBreak(){
+  // Only for the specific break: after Exercise 3 (index 2), Set 3 (index 2)
+  if (exIdx === SPECIAL_EX_IDX && setIdx === SPECIAL_SET_IDX){
+    const delayMs = Math.max(0, (BREAK_SECS - LEAD_CUE_SECONDS) * 1000);
+    leadCueFired = false;
+    clearLeadCueTimeout();
+    leadCueTimeout = setTimeout(() => {
+      if (isBreak && exIdx === SPECIAL_EX_IDX && setIdx === SPECIAL_SET_IDX && !finished && !leadCueFired){
+        leadCueFired = true;
+        playNewExerciseCue();
+      }
+    }, delayMs);
+  } else {
+    leadCueFired = true; // not the special break; prevent accidental fire
+    clearLeadCueTimeout();
+  }
 }
 
-// ====== Handle Next ======
-function handleNext() {
-  if (!inBreak) {
-    // finished exercise → go to break
-    inBreak = true;
-    renderExercises();
-    startTimer(60); // 1 min break
+function advance(){
+  if (!isBreak){
+    // -> Break
+    isBreak = true;
+    remaining = BREAK_SECS;
+    scheduleLeadCueIfSpecialBreak();
   } else {
-    // finished break → next exercise
-    inBreak = false;
-    currentExerciseIndex++;
-    if (currentExerciseIndex >= exercises.length) {
-      currentExerciseIndex = 0;
-      currentSet++;
-      if (currentSet > totalSets) {
-        exerciseTitle.textContent = "Exercise completed.";
-        renderSets();
+    // Break -> next set/exercise
+    isBreak = false;
+    clearLeadCueTimeout();
+
+    setIdx += 1;
+    if (setIdx >= TOTAL_SETS){
+      setIdx = 0;
+      exIdx += 1;
+      if (exIdx >= EXERCISES.length){
+        finished = true;
+        stop();
+        updateUI();
         return;
       }
+      exerciseChangeSound(); // short cue for regular transitions
     }
-    exerciseChangeSound.currentTime = 0;
-    exerciseChangeSound.play();
-    renderExercises();
-    renderSets();
-    startTimer(60); // 1 min exercise
+    remaining = EXERCISE_SECS;
+  }
+  updateUI();
+}
+
+// ---------- LOOP ----------
+function tick(){
+  remaining -= 1;
+  sinceStart += 1;
+
+  // Last 5 seconds beep
+  if (remaining > 0 && remaining <= 5) countdownBeep(remaining);
+
+  // Safety net: if timers get throttled, fire the lead cue as soon as we're inside the window
+  if (isBreak && exIdx === SPECIAL_EX_IDX && setIdx === SPECIAL_SET_IDX && !leadCueFired){
+    if (remaining <= LEAD_CUE_SECONDS && remaining > 0){
+      leadCueFired = true;
+      playNewExerciseCue();
+      clearLeadCueTimeout();
+    }
+  }
+
+  if (remaining <= 0){
+    remaining = 0;
+    updateUI();
+    try { navigator.vibrate && navigator.vibrate([180,120,180]); } catch {}
+    phaseChime();
+    advance();
+  } else {
+    updateUI();
   }
 }
 
-// ====== Button Handlers ======
-startBtn.addEventListener("click", () => {
-  if (!isRunning) {
-    clickSound.play();
-    isRunning = true;
-    if (timeLeft === 0) {
-      startTimer(60);
-    } else {
-      startTimer(timeLeft);
-    }
-  }
-});
+// ---------- CONTROLS ----------
+function start(){
+  if (running || finished) return;
+  clickTone();
+  ensureAudio();
+  primeCueAudio();
+  running = true;
+  startBtn && startBtn.classList.add('active');
+  pauseBtn && pauseBtn.classList.remove('active');
+  timerId = setInterval(tick, 1000);
+}
+function pause(){
+  if (!running) return;
+  clickTone();
+  running = false;
+  if (timerId){ clearInterval(timerId); timerId = null; }
+  pauseBtn && pauseBtn.classList.add('active');
+  startBtn && startBtn.classList.remove('active');
+}
+function stop(){
+  running = false;
+  if (timerId){ clearInterval(timerId); timerId = null; }
+  startBtn && startBtn.classList.remove('active');
+  pauseBtn && pauseBtn.classList.remove('active');
+}
+function resetAll(){
+  clickTone();
+  stop();
+  exIdx = 0; setIdx = 0; isBreak = false; finished = false;
+  remaining = EXERCISE_SECS; sinceStart = 0;
+  leadCueFired = false;
+  clearLeadCueTimeout();
+  buildExerciseBars();
+  buildSets();
+  exerciseListEl && exerciseListEl.classList.remove('collapsed'); // force expanded
+  updateUI();
+}
 
-pauseBtn.addEventListener("click", () => {
-  if (isRunning) {
-    clickSound.play();
-    isRunning = false;
-    clearInterval(timer);
-  }
-});
+// ---------- ACCORDION ----------
+function toggleExercises(){
+  if (!exerciseListEl) return;
+  const collapsed = exerciseListEl.classList.toggle('collapsed');
+  if (toggleArrow) toggleArrow.textContent = collapsed ? '▼' : '▲';
+  clickTone();
+}
 
-resetBtn.addEventListener("click", () => {
-  clickSound.play();
-  clearInterval(timer);
-  isRunning = false;
-  sinceStart = 0;
-  currentExerciseIndex = 0;
-  currentSet = 1;
-  inBreak = false;
-  timeLeft = 0;
-  updateTimerDisplay();
-  updateSinceStart();
-  renderExercises();
-  renderSets();
-  exerciseTitle.textContent = "Core Exercise Tracker";
-});
+// ---------- INIT ----------
+document.addEventListener('DOMContentLoaded', () => {
+  // Grab DOM
+  timeLabel        = document.getElementById('time');
+  sinceStartLabel  = document.getElementById('sinceStart');
+  phaseLabel       = document.getElementById('exerciseTitle') || document.getElementById('phaseLabel');
+  wheelProgress    = document.getElementById('wheelProgress');
+  exerciseListEl   = document.getElementById('exerciseList');
+  setsEl           = document.getElementById('setIndicators') || document.getElementById('setsDots');
+  startBtn         = document.getElementById('startBtn');
+  pauseBtn         = document.getElementById('pauseBtn');
+  resetBtn         = document.getElementById('resetBtn');
+  toggleBtn        = document.getElementById('toggleExercises') || document.getElementById('exToggle') || document.querySelector('.ex-accordion');
+  toggleArrow      = document.getElementById('exArrow') || (toggleBtn ? toggleBtn.querySelector('.arrow') : null);
 
-// ====== Toggle Exercise List ======
-toggleExercises.addEventListener("click", () => {
-  exerciseList.classList.toggle("collapsed");
-  toggleExercises.textContent = exerciseList.classList.contains("collapsed")
-    ? "▼"
-    : "▲";
-});
+  // Build bars & sets ONCE (this restores the 5 bars)
+  buildExerciseBars();
+  buildSets();
 
-// ====== Initial Render ======
-renderExercises();
-renderSets();
-updateTimerDisplay();
-updateSinceStart();
+  // Ensure expanded on load
+  exerciseListEl && exerciseListEl.classList.remove('collapsed');
+
+  // Initial UI
+  updateUI();
+
+  // Events
+  startBtn && startBtn.addEventListener('click', start);
+  pauseBtn && pauseBtn.addEventListener('click', pause);
+  resetBtn && resetBtn.addEventListener('click', resetAll);
+  toggleBtn && toggleBtn.addEventListener('click', toggleExercises);
+
+  // Also prime audio on first touch (iOS)
+  window.addEventListener('touchstart', primeCueAudio, { once:true });
+  window.addEventListener('touchstart', ensureAudio,   { once:true });
+});
