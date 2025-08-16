@@ -1,4 +1,4 @@
-// ===== Core Exercise Tracker (mp3 cue, 10s test, Spotify-friendly) =====
+// ===== Core Exercise Tracker (voice cue 10s before end of 3rd break, 10s test, Spotify-friendly) =====
 
 // --- Config ---
 const EXERCISES = [
@@ -14,6 +14,9 @@ const SETS_PER_EXERCISE = 3;
 const EXERCISE_SECS = 10;
 const BREAK_SECS = 10;
 
+// Lead time for voice cue (seconds before a phase ends)
+const LEAD_CUE_SECONDS = 10; // <- your request
+
 // --- State ---
 let exIdx = 0;
 let setIdx = 0;
@@ -23,6 +26,8 @@ let finished = false;
 let timerId = null;
 let remaining = EXERCISE_SECS;
 let sinceStart = 0;
+// one-time gate for the voice cue during the special break
+let leadCueFired = false;
 
 // --- DOM refs ---
 let exerciseListEl, wheelProgress, phaseLabel, timeLabel, setsDots, sinceStartEl;
@@ -54,14 +59,15 @@ function phaseChime(){ ensureAudio(); tone(1200,.12,.16,'square',0); tone(800,.1
 function countdownBeep(n){ ensureAudio(); const f={1:1000,2:950,3:900,4:850,5:800}[n]||880; tone(f,0.09,0.14,'square'); }
 function exerciseChangeSound(){ ensureAudio(); tone(700,0.12,0.16,'square',0); tone(900,0.12,0.16,'square',0.20); tone(1100,0.12,0.16,'square',0.40); }
 
-// ===== New Exercise Coming Up MP3 =====
-let newExerciseAudio = new Audio("new exercise coming up.mp3");
-newExerciseAudio.volume = 1.0; // max device volume
+// ===== Voice MP3 cue =====
+const newExerciseAudio = new Audio("new exercise coming up.mp3"); // same folder as core.js
+newExerciseAudio.volume = 1.0;
 function playNewExerciseCue(){
-  // Restart from beginning if already playing
-  newExerciseAudio.pause();
-  newExerciseAudio.currentTime = 0;
-  newExerciseAudio.play().catch(e => console.warn("Audio play failed:", e));
+  try {
+    newExerciseAudio.pause();
+    newExerciseAudio.currentTime = 0;
+    newExerciseAudio.play().catch(()=>{});
+  } catch {}
 }
 
 // ===== UI builders =====
@@ -85,6 +91,8 @@ function buildDots(){
     setsDots.appendChild(d);
   }
 }
+
+// Helpers
 function fmt(sec){
   sec = Math.max(0, Math.round(sec));
   const m = Math.floor(sec/60), s = sec % 60;
@@ -134,26 +142,21 @@ function updateUI(){
     }
   }
   if (sinceStartEl) sinceStartEl.textContent = fmt(sinceStart);
-
-  updateWheel();
-  updateExerciseHighlights();
-  updateDots();
+  updateWheel(); updateExerciseHighlights(); updateDots();
 }
 
 // Phase progression
 function advance(){
   if (!isBreak){
+    // Enter break
     isBreak = true;
     remaining = BREAK_SECS;
+    // Reset the one-time cue gate at the start of *every* break
+    leadCueFired = false;
   } else {
-    // Special cue at end of Exercise 3 / Set 3 break
-    if (exIdx === 2 && setIdx === SETS_PER_EXERCISE - 1) {
-      playNewExerciseCue();
-    }
-
+    // Leaving break -> next set/exercise
     isBreak = false;
     setIdx += 1;
-
     if (setIdx >= SETS_PER_EXERCISE){
       setIdx = 0;
       exIdx += 1;
@@ -163,7 +166,7 @@ function advance(){
         updateUI();
         return;
       }
-      exerciseChangeSound();
+      exerciseChangeSound(); // general cue for new exercise
     }
     remaining = EXERCISE_SECS;
   }
@@ -175,8 +178,21 @@ function loop(){
   remaining -= 1;
   sinceStart += 1;
 
+  // Last-5 seconds beep for any phase
   if (remaining > 0 && remaining <= 5){
     countdownBeep(remaining);
+  }
+
+  // SPECIAL: Speak 10s before end of the 3rd break (exIdx=2, setIdx=2, in break)
+  if (
+    isBreak &&
+    exIdx === 2 &&
+    setIdx === SETS_PER_EXERCISE - 1 &&
+    remaining === LEAD_CUE_SECONDS &&
+    !leadCueFired
+  ){
+    leadCueFired = true;
+    playNewExerciseCue();
   }
 
   if (remaining <= 0){
@@ -219,6 +235,7 @@ function resetAll(){
   stop();
   exIdx = 0; setIdx = 0; isBreak = false; finished = false;
   remaining = EXERCISE_SECS; sinceStart = 0;
+  leadCueFired = false;
   buildExerciseList();
   buildDots();
   if (exerciseListEl) exerciseListEl.classList.remove('collapsed');
