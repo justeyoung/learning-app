@@ -5,8 +5,8 @@ console.log("[core] final: led + wheel + sets + ✓ + countdown + short-rapid + 
 
 window.addEventListener("DOMContentLoaded", () => {
   // ===== Config (TEST) =====
-  const EX_TIME = 10;              // exercise seconds (TEST)
-  const BR_TIME = 10;              // break seconds (TEST)
+  const EX_TIME = 25;              // exercise seconds (TEST)
+  const BR_TIME = 25;              // break seconds (TEST)
   const TOTAL_SETS = 3;
 
   const NAMES = [
