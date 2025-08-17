@@ -10,7 +10,7 @@ let totalSets = 3;
 
 const exercises = ["Plank", "Hollow Hold", "Side Plank", "Leg Raises", "Extended Plank"];
 const exerciseDuration = 20; // seconds (testing)
-const breakDuration = 20; // seconds (testing)
+const breakDuration = 20;    // seconds (testing)
 
 const timerDisplay = document.getElementById("time");
 const statusDisplay = document.getElementById("status");
@@ -21,13 +21,13 @@ const setDots = document.querySelectorAll(".set-dot");
 // 🔊 sounds
 const clickSound = new Audio("click.mp3");
 const countdownBeep = new Audio("beep.mp3");
-const newExerciseSound = new Audio("new_exercise.mp3"); // spoken alert
-const rapidPing = new Audio("digital_ping.mp3"); // short alert for new exercise
+const newExerciseSound = new Audio("new_exercise.mp3");
+const rapidPing = new Audio("digital_ping.mp3");
 
 // ensure sounds don’t duck Spotify
 [clickSound, countdownBeep, newExerciseSound, rapidPing].forEach(s => {
   s.preload = "auto";
-  s.volume = 0.35; // louder than before, doesn’t mute Spotify
+  s.volume = 0.35;
 });
 
 // helper for playing sounds safely
@@ -40,6 +40,7 @@ function playSound(sound) {
 
 function startTimer(duration, isBreak = false) {
   timeLeft = duration;
+  inBreak = isBreak; // ✅ track properly
   updateTimerDisplay();
 
   statusDisplay.textContent = isBreak ? "Break" : exercises[currentExercise];
@@ -70,7 +71,7 @@ function startTimer(duration, isBreak = false) {
           currentExercise++;
 
           if (currentExercise < exercises.length) {
-            // ✅ play special alert ONCE before new exercise
+            // ✅ special alert before new exercise
             playSound(newExerciseSound);
             playSound(rapidPing);
 
@@ -78,6 +79,7 @@ function startTimer(duration, isBreak = false) {
           } else {
             statusDisplay.textContent = "Exercise completed.";
             timerDisplay.textContent = "00:00";
+            isRunning = false;
           }
         }
       } else {
@@ -145,6 +147,7 @@ document.getElementById("skip").addEventListener("click", () => {
       } else {
         statusDisplay.textContent = "Exercise completed.";
         timerDisplay.textContent = "00:00";
+        isRunning = false;
       }
     }
   } else {
