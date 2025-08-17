@@ -1,9 +1,9 @@
-// core.js — Friday-stable + reliable 5s countdown beeps + new_exercise announcement
+// core.js — milestone5 + Skip autostart next phase
 
 window.addEventListener('DOMContentLoaded', () => {
   // ===== Config (edit these) =====
-  const EX_TIME = 10;  // seconds per exercise (e.g., 180 for 3 min)
-  const BR_TIME = 10;  // seconds per break    (e.g., 60 for 1 min)
+  const EX_TIME = 20;  // seconds per exercise (e.g., 180 for 3 min)
+  const BR_TIME = 20;  // seconds per break    (e.g., 60 for 1 min)
 
   const NAMES = [
     "Plank",
@@ -127,7 +127,6 @@ window.addEventListener('DOMContentLoaded', () => {
   newExerciseSound.preload = 'auto';
   newExerciseSound.volume = 0.6;
   function playNewExerciseOnce(){
-    // play only once per phase; guarded by `phaseCuePlayed`
     try { newExerciseSound.currentTime = 0; newExerciseSound.play().catch(()=>{}); } catch {}
   }
 
@@ -207,22 +206,18 @@ window.addEventListener('DOMContentLoaded', () => {
       playBeep();
     }
 
-    // 🔊 NEW: During the 3rd break (setIdx === TOTAL_SETS), if there is a next exercise,
-    // play "new_exercise.mp3" ONCE in the last 5 seconds.
-    if (
-      inBreak &&
-      setIdx === TOTAL_SETS &&
-      exIdx < NAMES.length - 1 &&
-      left > 0 && left <= 5 &&
-      !phaseCuePlayed
-    ) {
-      playNewExerciseOnce();
-      phaseCuePlayed = true;
+    // 🔊 During the 3rd break, if there is a next exercise, play voice once in last 5s
+    if (inBreak && setIdx === TOTAL_SETS && exIdx < NAMES.length - 1 && left > 0 && left <= 5) {
+      // play once per that break (guard using phaseCuePlayed)
+      if (!phaseCuePlayed) {
+        playNewExerciseOnce();
+        phaseCuePlayed = true;
+      }
     }
 
     if (left <= 0){
       advancePhase();
-      phaseCuePlayed = false; // reset guard for the next phase
+      phaseCuePlayed = false; // reset guard for next phase
     }
     draw();
   }
@@ -255,14 +250,16 @@ window.addEventListener('DOMContentLoaded', () => {
     phaseCuePlayed = false;
     draw();
   }
-  function skip(){ // complete current phase immediately
+  function skip(){ // complete current phase immediately AND AUTOSTART next phase
     primeAudio();
     playClick();
-    stop();
+    stop();                 // stop current interval
     left = 0;
-    advancePhase();
-    phaseCuePlayed = false; // new phase will decide cues
+    advancePhase();         // move to next phase
+    phaseCuePlayed = false;
     draw();
+    // NEW: autostart the next phase (no extra tap needed)
+    if (!tickId) tickId = setInterval(tick, 1000);
   }
 
   // Bind (clone to avoid stale handlers)
@@ -282,5 +279,5 @@ window.addEventListener('DOMContentLoaded', () => {
   since = 0;
   draw();
 
-  console.log('[core] Friday-stable + countdown + new_exercise cue loaded');
+  console.log('[core] milestone5 + Skip autostart loaded');
 });
