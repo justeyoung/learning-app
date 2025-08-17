@@ -1,5 +1,7 @@
-// core.js — stable build + fixed countdown beeps
+// core.js — same behavior + reliable countdown alert (file fallback + WebAudio tone)
+
 window.addEventListener('DOMContentLoaded', () => {
+  // ----- State -----
   let timerInterval;
   let timeLeft = 0;
   let isRunning = false;
@@ -8,17 +10,19 @@ window.addEventListener('DOMContentLoaded', () => {
   let inBreak = false;
   const totalSets = 3;
 
+  // ----- Config -----
   const exercises = ["Plank", "Hollow Hold", "Side Plank", "Leg Raises", "Extended Plank"];
-  const exerciseDuration = 10;
-  const breakDuration    = 10;
+  const exerciseDuration = 12; // seconds
+  const breakDuration    = 12; // seconds
 
+  // ----- DOM (tolerant) -----
   const $ = (id) => document.getElementById(id);
   const timerDisplay  = $('time') || $('timer');
   const statusDisplay = $('status') || $('phase');
   const setDots       = document.querySelectorAll('.set-dot, .tic');
   const wheelEl       = document.getElementById('wheelProgress');
 
-  // wheel setup
+  // Wheel setup
   let C = 0;
   if (wheelEl) {
     const r = parseFloat(wheelEl.getAttribute('r') || 54);
@@ -27,16 +31,82 @@ window.addEventListener('DOMContentLoaded', () => {
     wheelEl.style.strokeDashoffset = `${C}`;
   }
 
-  // sounds
-  const clickSound    = new Audio("click.mp3");
-  const countdownBeep = new Audio("beep.mp3");
-  [clickSound, countdownBeep].forEach(a => {
-    a.preload = "auto";
-    a.volume = 0.35;
-  });
-  const playSound = (a) => { try { a.currentTime = 0; a.play().catch(()=>{}); } catch {} };
+  // ----- Sounds (click + robust countdown) -----
+  const clickSound = new Audio("click.mp3"); clickSound.preload = "auto"; clickSound.volume = 0.45;
 
-  // helpers
+  // Beep: try multiple filenames, then WebAudio fallback
+  const BEEP_CANDIDATES = ["beep.mp3", "countdown_beep.mp3"];
+  const beepPool = BEEP_CANDIDATES.map(src => { const a = new Audio(src); a.preload="auto"; a.volume=0.9; return a; });
+  let beepIdx = 0;
+
+  // WebAudio fallback (does not duck Spotify)
+  let AC = null;
+  function ensureAC(){ if (!AC) { try { AC = new (window.AudioContext||window.webkitAudioContext)(); } catch {} } }
+  function tone(freq=950, dur=0.12){
+    if (!AC) return;
+    const t = AC.currentTime;
+    const o = AC.createOscillator();
+    const g = AC.createGain();
+    o.type = "square";
+    o.frequency.value = freq;
+    g.gain.value = 0.0001;
+    o.connect(g).connect(AC.destination);
+    o.start(t);
+    g.gain.exponentialRampToValueAtTime(0.25, t+0.01);
+    g.gain.exponentialRampToValueAtTime(0.0001, t+dur);
+    o.stop(t+dur+0.02);
+  }
+
+  // Unlock audio on first user gesture
+  let audioPrimed = false;
+  function primeAudio(){
+    if (audioPrimed) return;
+    audioPrimed = true;
+    ensureAC();
+    if (AC && AC.state === "suspended") { AC.resume().catch(()=>{}); }
+    // quick silent prime so iOS lets future plays through
+    [clickSound, ...beepPool].forEach(a=>{
+      a.volume = 0.01;
+      a.play().then(()=>{ a.pause(); a.currentTime = 0; a.volume = 0.9; }).catch(()=>{});
+    });
+  }
+
+  // Safe beep: try audio; if blocked/missing, fallback tone
+  function playBeep(){
+    // try each candidate in the small round-robin pool
+    let tried = 0;
+    function tryNext(){
+      if (tried >= beepPool.length){
+        // all failed → fallback tone
+        ensureAC(); tone(950, 0.12);
+        return;
+      }
+      const a = beepPool[(beepIdx + tried) % beepPool.length];
+      try {
+        a.currentTime = 0;
+        const p = a.play();
+        if (p && typeof p.then === "function"){
+          p.then(()=>{
+            // schedule a quick chop so it stays snappy
+            setTimeout(()=>{ try{ a.pause(); a.currentTime=0; }catch{} }, 220);
+          }).catch(()=>{
+            tried++; tryNext();
+          });
+        } else {
+          // older browsers
+          setTimeout(()=>{ try{ a.pause(); a.currentTime=0; }catch{} }, 220);
+        }
+      } catch {
+        tried++; tryNext();
+      }
+    }
+    tryNext();
+    beepIdx = (beepIdx + 1) % beepPool.length;
+  }
+
+  const playClick = ()=>{ try { clickSound.currentTime = 0; clickSound.play().catch(()=>{});} catch {} };
+
+  // ----- UI helpers -----
   function updateTimerDisplay() {
     const m = String(Math.floor(timeLeft / 60)).padStart(2, "0");
     const s = String(timeLeft % 60).padStart(2, "0");
@@ -50,13 +120,13 @@ window.addEventListener('DOMContentLoaded', () => {
   function updateWheel() {
     if (!wheelEl) return;
     const total = inBreak ? breakDuration : exerciseDuration;
-    const ratio = 1 - (timeLeft / total);
+    const ratio = Math.max(0, Math.min(1, 1 - (timeLeft / total)));
     wheelEl.style.strokeDashoffset = String(C * (1 - ratio));
     wheelEl.classList.toggle('break', inBreak);
     wheelEl.classList.toggle('exercise', !inBreak);
   }
 
-  // engine
+  // ----- Engine -----
   function startTimer(duration, isBreakPhase = false) {
     timeLeft = duration;
     inBreak  = isBreakPhase;
@@ -70,9 +140,9 @@ window.addEventListener('DOMContentLoaded', () => {
       updateTimerDisplay();
       updateWheel();
 
-      // 🔔 countdown beeps reliably trigger in last 5 sec
+      // Beep every second in the last 5s of ANY phase (exercise→break and break→next)
       if (timeLeft <= 5 && timeLeft > 0) {
-        playSound(countdownBeep);
+        playBeep();
       }
 
       if (timeLeft <= 0) {
@@ -102,29 +172,31 @@ window.addEventListener('DOMContentLoaded', () => {
     }, 1000);
   }
 
-  // buttons
+  // ----- Buttons -----
   function bind(id1, id2, handler){
-    const el = $(id1) || $(id2);
+    const el = ($(id1) || $(id2));
     if (!el) return;
-    el.addEventListener('click', handler, { passive: true });
+    const clone = el.cloneNode(true);
+    el.parentNode.replaceChild(clone, el);
+    clone.addEventListener('click', (e)=>{ primeAudio(); handler(e); }, { passive: true });
   }
 
   bind('start','startBtn', () => {
     if (isRunning) return;
-    playSound(clickSound);
+    playClick();
     isRunning = true;
     startTimer(exerciseDuration, false);
   });
 
   bind('pause','pauseBtn', () => {
     if (!isRunning) return;
-    playSound(clickSound);
+    playClick();
     clearInterval(timerInterval);
     isRunning = false;
   });
 
   bind('reset','resetBtn', () => {
-    playSound(clickSound);
+    playClick();
     clearInterval(timerInterval);
     isRunning = false;
     currentExercise = 0;
@@ -133,7 +205,7 @@ window.addEventListener('DOMContentLoaded', () => {
     timeLeft = exerciseDuration;
     updateTimerDisplay();
     setStatus("Ready", false);
-    setDots.forEach(d => d.classList.remove("done"));
+    setDots.forEach(d => d.classList && d.classList.remove("done"));
     if (wheelEl) {
       wheelEl.style.strokeDashoffset = `${C}`;
       wheelEl.classList.add('exercise');
@@ -142,7 +214,7 @@ window.addEventListener('DOMContentLoaded', () => {
   });
 
   bind('skip','completeBtn', () => {
-    playSound(clickSound);
+    playClick();
     clearInterval(timerInterval);
     timeLeft = 0;
 
@@ -168,11 +240,11 @@ window.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // initial
+  // Initial paint
   timeLeft = exerciseDuration;
   updateTimerDisplay();
   setStatus("Ready", false);
   updateWheel();
 
-  console.log('[core] ready (click + countdown beeps)');
+  console.log('[core] ready (robust countdown alerts)');
 });
