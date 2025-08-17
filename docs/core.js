@@ -1,4 +1,6 @@
-// core.js — restore animated wheel + keep your button IDs/flow/sounds
+// core.js — stable build + countdown before exercise end AND break end
+// Keeps: animated wheel, 20s exercise/20s break, 3 sets per exercise,
+// buttons start/pause/reset/skip, skip completes current phase.
 
 window.addEventListener('DOMContentLoaded', () => {
   // ----- State -----
@@ -9,6 +11,9 @@ window.addEventListener('DOMContentLoaded', () => {
   let currentSet = 1;
   let inBreak = false;
   const totalSets = 3;
+
+  // countdown scheduler
+  let countdownId = null;
 
   // ----- Config -----
   const exercises = ["Plank", "Hollow Hold", "Side Plank", "Leg Raises", "Extended Plank"];
@@ -22,8 +27,7 @@ window.addEventListener('DOMContentLoaded', () => {
   const setDots       = document.querySelectorAll('.set-dot, .tic');
 
   // SVG progress circle for the wheel
-  const wheelEl = document.getElementById('wheelProgress'); // <circle id="wheelProgress" ... />
-  // Prepare circumference if wheel exists
+  const wheelEl = document.getElementById('wheelProgress');
   let C = 0;
   if (wheelEl) {
     const rAttr = wheelEl.getAttribute('r');
@@ -33,17 +37,28 @@ window.addEventListener('DOMContentLoaded', () => {
     wheelEl.style.strokeDashoffset = `${C}`; // start empty
   }
 
-  // ----- Sounds (short; shouldn’t duck Spotify) -----
-  const clickSound       = new Audio("click.mp3");
-  const countdownBeep    = new Audio("beep.mp3");
-  const rapidPing        = new Audio("digital_ping.mp3"); // single ping for NEW exercise
-
-  [clickSound, countdownBeep, rapidPing].forEach(a => {
+  // ----- Sounds (only click + beep) -----
+  const clickSound    = new Audio("click.mp3");
+  const countdownBeep = new Audio("beep.mp3");
+  [clickSound, countdownBeep].forEach(a => {
     a.preload = "auto";
-    a.volume = 0.35;
+    a.volume = 0.35; // short UI effects; should not duck Spotify
   });
-
   const playSound = (a) => { try { a.currentTime = 0; a.play().catch(()=>{}); } catch {} };
+
+  // ----- Countdown helpers -----
+  function clearCountdown(){
+    if (countdownId){ clearInterval(countdownId); countdownId = null; }
+  }
+  function startCountdown5(){
+    if (countdownId) return; // already running
+    let secs = 5;
+    countdownId = setInterval(()=>{
+      playSound(countdownBeep); // one ping each second
+      secs--;
+      if (secs <= 0) clearCountdown();
+    }, 1000);
+  }
 
   // ----- UI helpers -----
   function updateTimerDisplay() {
@@ -62,9 +77,7 @@ window.addEventListener('DOMContentLoaded', () => {
     if (!wheelEl) return;
     const total = inBreak ? breakDuration : exerciseDuration;
     const ratio = Math.max(0, Math.min(1, 1 - (timeLeft / total))); // 0→1 fill
-    // show progress by reducing offset
     wheelEl.style.strokeDashoffset = String(C * (1 - ratio));
-    // color: red for exercise, blue for break (uses CSS classes)
     wheelEl.classList.toggle('break', inBreak);
     wheelEl.classList.toggle('exercise', !inBreak);
   }
@@ -76,6 +89,7 @@ window.addEventListener('DOMContentLoaded', () => {
     updateTimerDisplay();
     setStatus(isBreakPhase ? "Break" : exercises[currentExercise], isBreakPhase);
     updateWheel();
+    clearCountdown(); // fresh phase → allow a new countdown later
 
     clearInterval(timerInterval);
     timerInterval = setInterval(() => {
@@ -83,13 +97,12 @@ window.addEventListener('DOMContentLoaded', () => {
       updateTimerDisplay();
       updateWheel();
 
-      // Beeps ONLY before exercise→break (what you asked)
-      if (!inBreak && timeLeft <= 5 && timeLeft > 0) {
-        playSound(countdownBeep);
-      }
+      // 🔔 start a 5s countdown for BOTH phase ends (exercise→break and break→exercise)
+      if (timeLeft === 5) startCountdown5();
 
       if (timeLeft <= 0) {
         clearInterval(timerInterval);
+        clearCountdown();
 
         if (inBreak) {
           // break ended
@@ -103,8 +116,6 @@ window.addEventListener('DOMContentLoaded', () => {
             currentExercise++;
 
             if (currentExercise < exercises.length) {
-              // single alert when moving to a NEW exercise (not between sets)
-              playSound(rapidPing);
               startTimer(exerciseDuration, false);
             } else {
               setStatus("Exercise completed.", false);
@@ -125,7 +136,7 @@ window.addEventListener('DOMContentLoaded', () => {
   function bind(id1, id2, handler){
     const el = $(id1) || $(id2);
     if (!el) return;
-    const clone = el.cloneNode(true);     // avoid stale double listeners
+    const clone = el.cloneNode(true);     // avoid stale/double listeners
     el.parentNode.replaceChild(clone, el);
     clone.addEventListener('click', handler, { passive: true });
   }
@@ -141,12 +152,14 @@ window.addEventListener('DOMContentLoaded', () => {
     if (!isRunning) return;
     playSound(clickSound);
     clearInterval(timerInterval);
+    clearCountdown();
     isRunning = false;
   });
 
   bind('reset','resetBtn', () => {
     playSound(clickSound);
     clearInterval(timerInterval);
+    clearCountdown();
     isRunning = false;
     currentExercise = 0;
     currentSet = 1;
@@ -155,7 +168,6 @@ window.addEventListener('DOMContentLoaded', () => {
     updateTimerDisplay();
     setStatus("Ready", false);
     setDots.forEach(d => d.classList && d.classList.remove("done"));
-    // reset wheel to empty
     if (wheelEl) {
       wheelEl.classList.remove('break');
       wheelEl.classList.add('exercise');
@@ -167,6 +179,7 @@ window.addEventListener('DOMContentLoaded', () => {
   bind('skip','completeBtn', () => {
     playSound(clickSound);
     clearInterval(timerInterval);
+    clearCountdown();
     timeLeft = 0;
 
     if (inBreak) {
@@ -179,7 +192,6 @@ window.addEventListener('DOMContentLoaded', () => {
         currentSet = 1;
         currentExercise++;
         if (currentExercise < exercises.length) {
-          playSound(rapidPing); // one ping only
           startTimer(exerciseDuration, false);
         } else {
           setStatus("Exercise completed.", false);
@@ -194,11 +206,11 @@ window.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Initial paint so the wheel shows baseline
+  // Initial paint
   timeLeft = exerciseDuration;
   updateTimerDisplay();
   setStatus("Ready", false);
   updateWheel();
 
-  console.log('[core] ready (wheel enabled)');
+  console.log('[core] ready (wheel + dual countdown)');
 });
