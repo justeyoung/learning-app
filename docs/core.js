@@ -1,9 +1,10 @@
-// Friday-morning stable build:
+// Friday-morning stable + 5s countdown beeps before every phase change
 // - Animated wheel (red exercise / blue break)
 // - 20s exercise / 20s break; 3 sets per exercise
 // - LED text highlight only for current (green exercise / blue break); completed neutral
 // - 3 dots show sets progress for the CURRENT exercise
-// - Buttons: start/pause/reset/skip (icons), click sound only (Spotify-safe)
+// - Buttons: start/pause/reset/skip (icons)
+// - Sounds: click on buttons + short beep at 5,4,3,2,1 before ANY phase ends
 
 window.addEventListener('DOMContentLoaded', () => {
   // ----- State -----
@@ -16,8 +17,8 @@ window.addEventListener('DOMContentLoaded', () => {
   const TOTAL_SETS = 3;
 
   // ----- Config -----
-  const EX_TIME = 30;           // change to 180 for 3 minutes
-  const BR_TIME = 30;
+  const EX_TIME = 20;           // change to 180 for 3 minutes
+  const BR_TIME = 20;
 
   const NAMES = [
     "Plank",
@@ -57,11 +58,17 @@ window.addEventListener('DOMContentLoaded', () => {
     progEl.classList.add('exercise');
   }
 
-  // ----- Sound: click only -----
+  // ----- Sounds -----
   const click = new Audio('click.mp3');
   click.preload = 'auto';
   click.volume = 0.45;
+
+  const beep = new Audio('beep.mp3');       // keep it short/mono so it won't duck Spotify
+  beep.preload = 'auto';
+  beep.volume = 0.9;
+
   const playClick = () => { try { click.currentTime = 0; click.play().catch(()=>{});} catch{} };
+  const playBeep  = () => { try { beep.currentTime = 0;  beep.play().catch(()=>{}); } catch{} };
 
   // ----- UI helpers -----
   const fmt = s => `${String(Math.floor(s/60)).padStart(2,"0")}:${String(s%60).padStart(2,"0")}`;
@@ -134,6 +141,11 @@ window.addEventListener('DOMContentLoaded', () => {
     left -= 1;
     since += 1;
 
+    // 🔔 5-second countdown beep before ANY phase ends (exercise→break or break→exercise)
+    if (left > 0 && left <= 5) {
+      playBeep();
+    }
+
     if (left <= 0){
       advancePhase();
     }
@@ -189,5 +201,5 @@ window.addEventListener('DOMContentLoaded', () => {
   since = 0;
   draw();
 
-  console.log('[core] Friday-stable loaded');
+  console.log('[core] Friday-stable + countdown beeps loaded');
 });
