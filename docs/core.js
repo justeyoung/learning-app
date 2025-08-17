@@ -1,4 +1,4 @@
-// core.js — same behavior + reliable countdown alert (file fallback + WebAudio tone)
+// core.js — checkpoint + single "new_exercise.mp3" cue at end of 3rd break (last 5s)
 
 window.addEventListener('DOMContentLoaded', () => {
   // ----- State -----
@@ -10,10 +10,13 @@ window.addEventListener('DOMContentLoaded', () => {
   let inBreak = false;
   const totalSets = 3;
 
+  // Track whether we've already played a special cue in the current phase
+  let phaseCuePlayed = false;
+
   // ----- Config -----
   const exercises = ["Plank", "Hollow Hold", "Side Plank", "Leg Raises", "Extended Plank"];
-  const exerciseDuration = 12; // seconds
-  const breakDuration    = 12; // seconds
+  const exerciseDuration = 20; // seconds
+  const breakDuration    = 20; // seconds
 
   // ----- DOM (tolerant) -----
   const $ = (id) => document.getElementById(id);
@@ -31,13 +34,21 @@ window.addEventListener('DOMContentLoaded', () => {
     wheelEl.style.strokeDashoffset = `${C}`;
   }
 
-  // ----- Sounds (click + robust countdown) -----
-  const clickSound = new Audio("click.mp3"); clickSound.preload = "auto"; clickSound.volume = 0.45;
+  // ----- Sounds -----
+  // Click
+  const clickSound = new Audio("click.mp3");
+  clickSound.preload = "auto";
+  clickSound.volume = 0.45;
 
-  // Beep: try multiple filenames, then WebAudio fallback
+  // Countdown beep: try multiple filenames, fallback to WebAudio tone if blocked/missing
   const BEEP_CANDIDATES = ["beep.mp3", "countdown_beep.mp3"];
   const beepPool = BEEP_CANDIDATES.map(src => { const a = new Audio(src); a.preload="auto"; a.volume=0.9; return a; });
   let beepIdx = 0;
+
+  // New exercise voice cue (single play when moving to next exercise)
+  const newExerciseSound = new Audio("new_exercise.mp3");
+  newExerciseSound.preload = "auto";
+  newExerciseSound.volume = 0.6;
 
   // WebAudio fallback (does not duck Spotify)
   let AC = null;
@@ -65,19 +76,19 @@ window.addEventListener('DOMContentLoaded', () => {
     ensureAC();
     if (AC && AC.state === "suspended") { AC.resume().catch(()=>{}); }
     // quick silent prime so iOS lets future plays through
-    [clickSound, ...beepPool].forEach(a=>{
+    [clickSound, newExerciseSound, ...beepPool].forEach(a=>{
       a.volume = 0.01;
-      a.play().then(()=>{ a.pause(); a.currentTime = 0; a.volume = 0.9; }).catch(()=>{});
+      a.play().then(()=>{ a.pause(); a.currentTime = 0; a.volume = a === newExerciseSound ? 0.6 : (a === clickSound ? 0.45 : 0.9); }).catch(()=>{});
     });
   }
 
+  const playClick = ()=>{ try { clickSound.currentTime = 0; clickSound.play().catch(()=>{});} catch {} };
+
   // Safe beep: try audio; if blocked/missing, fallback tone
   function playBeep(){
-    // try each candidate in the small round-robin pool
     let tried = 0;
     function tryNext(){
       if (tried >= beepPool.length){
-        // all failed → fallback tone
         ensureAC(); tone(950, 0.12);
         return;
       }
@@ -87,13 +98,11 @@ window.addEventListener('DOMContentLoaded', () => {
         const p = a.play();
         if (p && typeof p.then === "function"){
           p.then(()=>{
-            // schedule a quick chop so it stays snappy
             setTimeout(()=>{ try{ a.pause(); a.currentTime=0; }catch{} }, 220);
           }).catch(()=>{
             tried++; tryNext();
           });
         } else {
-          // older browsers
           setTimeout(()=>{ try{ a.pause(); a.currentTime=0; }catch{} }, 220);
         }
       } catch {
@@ -104,7 +113,12 @@ window.addEventListener('DOMContentLoaded', () => {
     beepIdx = (beepIdx + 1) % beepPool.length;
   }
 
-  const playClick = ()=>{ try { clickSound.currentTime = 0; clickSound.play().catch(()=>{});} catch {} };
+  function playNewExerciseOnce(){
+    try {
+      newExerciseSound.currentTime = 0;
+      newExerciseSound.play().catch(()=>{ /* ignore; countdown still plays */ });
+    } catch {}
+  }
 
   // ----- UI helpers -----
   function updateTimerDisplay() {
@@ -130,6 +144,7 @@ window.addEventListener('DOMContentLoaded', () => {
   function startTimer(duration, isBreakPhase = false) {
     timeLeft = duration;
     inBreak  = isBreakPhase;
+    phaseCuePlayed = false; // reset per phase
     updateTimerDisplay();
     setStatus(isBreakPhase ? "Break" : exercises[currentExercise], isBreakPhase);
     updateWheel();
@@ -140,19 +155,34 @@ window.addEventListener('DOMContentLoaded', () => {
       updateTimerDisplay();
       updateWheel();
 
-      // Beep every second in the last 5s of ANY phase (exercise→break and break→next)
+      // Beep once each second in the last 5s of ANY phase
       if (timeLeft <= 5 && timeLeft > 0) {
         playBeep();
+      }
+
+      // NEW: during 3rd break only (and only if there IS a next exercise),
+      // play "new_exercise.mp3" ONCE in the last 5s window.
+      if (
+        inBreak &&
+        currentSet === totalSets &&                     // it's the 3rd break
+        currentExercise < exercises.length - 1 &&       // there is a next exercise
+        timeLeft <= 5 && timeLeft > 0 &&
+        !phaseCuePlayed
+      ) {
+        playNewExerciseOnce();
+        phaseCuePlayed = true; // ensure only once per that break
       }
 
       if (timeLeft <= 0) {
         clearInterval(timerInterval);
 
         if (inBreak) {
+          // break ended
           if (currentSet < totalSets) {
             currentSet++;
             startTimer(exerciseDuration, false);
           } else {
+            // finished 3 sets → next exercise
             if (setDots[currentSet - 1]) setDots[currentSet - 1].classList.add("done");
             currentSet = 1;
             currentExercise++;
@@ -166,6 +196,7 @@ window.addEventListener('DOMContentLoaded', () => {
             }
           }
         } else {
+          // exercise ended → always break
           startTimer(breakDuration, true);
         }
       }
@@ -202,6 +233,7 @@ window.addEventListener('DOMContentLoaded', () => {
     currentExercise = 0;
     currentSet = 1;
     inBreak = false;
+    phaseCuePlayed = false;
     timeLeft = exerciseDuration;
     updateTimerDisplay();
     setStatus("Ready", false);
@@ -246,5 +278,5 @@ window.addEventListener('DOMContentLoaded', () => {
   setStatus("Ready", false);
   updateWheel();
 
-  console.log('[core] ready (robust countdown alerts)');
+  console.log('[core] ready (dual countdown + new_exercise cue on 3rd break)');
 });
