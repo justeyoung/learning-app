@@ -1,157 +1,167 @@
-// core.js
+// core.js — safe wiring + inBreak fix, keeps your behavior intact
 
-let timerInterval;
-let timeLeft = 0;
-let isRunning = false;
-let currentExercise = 0;
-let currentSet = 1;
-let inBreak = false;
-let totalSets = 3;
+window.addEventListener('DOMContentLoaded', () => {
+  let timerInterval;
+  let timeLeft = 0;
+  let isRunning = false;
+  let currentExercise = 0;
+  let currentSet = 1;
+  let inBreak = false;      // <-- will now be updated correctly
+  const totalSets = 3;
 
-const exercises = ["Plank", "Hollow Hold", "Side Plank", "Leg Raises", "Extended Plank"];
-const exerciseDuration = 20; // seconds (testing)
-const breakDuration = 20;    // seconds (testing)
+  const exercises = ["Plank", "Hollow Hold", "Side Plank", "Leg Raises", "Extended Plank"];
+  const exerciseDuration = 20; // seconds (testing)
+  const breakDuration = 20;    // seconds (testing)
 
-const timerDisplay = document.getElementById("time");
-const statusDisplay = document.getElementById("status");
-const sinceStartDisplay = document.getElementById("since-start");
-const exerciseList = document.getElementById("exercise-list");
-const setDots = document.querySelectorAll(".set-dot");
+  const timerDisplay = document.getElementById("time");
+  const statusDisplay = document.getElementById("status");
+  const sinceStartDisplay = document.getElementById("since-start"); // (unused by your snippet, but kept)
+  const exerciseList = document.getElementById("exercise-list");    // (unused by your snippet, but kept)
+  const setDots = document.querySelectorAll(".set-dot");
 
-// 🔊 sounds
-const clickSound = new Audio("click.mp3");
-const countdownBeep = new Audio("beep.mp3");
-const newExerciseSound = new Audio("new_exercise.mp3");
-const rapidPing = new Audio("digital_ping.mp3");
+  // 🔊 sounds
+  const clickSound        = new Audio("click.mp3");
+  const countdownBeep     = new Audio("beep.mp3");
+  const newExerciseSound  = new Audio("new_exercise.mp3");  // spoken alert
+  const rapidPing         = new Audio("digital_ping.mp3");  // short alert
 
-// ensure sounds don’t duck Spotify
-[clickSound, countdownBeep, newExerciseSound, rapidPing].forEach(s => {
-  s.preload = "auto";
-  s.volume = 0.35;
-});
+  // ensure sounds don’t duck Spotify
+  [clickSound, countdownBeep, newExerciseSound, rapidPing].forEach(s => {
+    s.preload = "auto";
+    s.volume = 0.35;
+  });
 
-// helper for playing sounds safely
-function playSound(sound) {
-  if (sound) {
-    sound.currentTime = 0;
-    sound.play().catch(e => console.log("Sound blocked:", e));
+  // helper for playing sounds safely
+  function playSound(sound) {
+    try {
+      sound.currentTime = 0;
+      sound.play().catch(() => {});
+    } catch {}
   }
-}
 
-function startTimer(duration, isBreak = false) {
-  timeLeft = duration;
-  inBreak = isBreak; // ✅ track properly
-  updateTimerDisplay();
+  function updateTimerDisplay() {
+    const minutes = String(Math.floor(timeLeft / 60)).padStart(2, "0");
+    const seconds = String(timeLeft % 60).padStart(2, "0");
+    if (timerDisplay) timerDisplay.textContent = `${minutes}:${seconds}`;
+  }
 
-  statusDisplay.textContent = isBreak ? "Break" : exercises[currentExercise];
-  statusDisplay.className = isBreak ? "status break" : "status exercise";
-
-  clearInterval(timerInterval);
-  timerInterval = setInterval(() => {
-    timeLeft--;
+  function startTimer(duration, isBreakPhase = false) {
+    timeLeft = duration;
+    inBreak = isBreakPhase; // ✅ keep this in sync
     updateTimerDisplay();
 
-    // ⏱️ countdown beeps (last 5 sec)
-    if (timeLeft <= 5 && timeLeft > 0) {
-      playSound(countdownBeep);
+    if (statusDisplay) {
+      statusDisplay.textContent = isBreakPhase ? "Break" : exercises[currentExercise];
+      statusDisplay.className = isBreakPhase ? "status break" : "status exercise";
     }
 
-    if (timeLeft <= 0) {
-      clearInterval(timerInterval);
+    clearInterval(timerInterval);
+    timerInterval = setInterval(() => {
+      timeLeft--;
+      updateTimerDisplay();
 
-      if (isBreak) {
-        // after break
-        if (currentSet < totalSets) {
-          currentSet++;
-          startTimer(exerciseDuration, false);
-        } else {
-          // all 3 sets done → move to next exercise
-          setDots[currentSet - 1].classList.add("done");
-          currentSet = 1;
-          currentExercise++;
+      // ⏱️ countdown beeps (last 5 sec)
+      if (timeLeft <= 5 && timeLeft > 0) {
+        playSound(countdownBeep);
+      }
 
-          if (currentExercise < exercises.length) {
-            // ✅ special alert before new exercise
-            playSound(newExerciseSound);
-            playSound(rapidPing);
+      if (timeLeft <= 0) {
+        clearInterval(timerInterval);
 
+        if (isBreakPhase) {
+          // after break
+          if (currentSet < totalSets) {
+            currentSet++;
             startTimer(exerciseDuration, false);
           } else {
-            statusDisplay.textContent = "Exercise completed.";
-            timerDisplay.textContent = "00:00";
-            isRunning = false;
+            // all 3 sets done → move to next exercise
+            if (setDots[currentSet - 1]) setDots[currentSet - 1].classList.add("done");
+            currentSet = 1;
+            currentExercise++;
+
+            if (currentExercise < exercises.length) {
+              // special alert before a NEW exercise (single fire each)
+              playSound(newExerciseSound);
+              playSound(rapidPing); // if you later want only one, remove the other line
+
+              startTimer(exerciseDuration, false);
+            } else {
+              if (statusDisplay) statusDisplay.textContent = "Exercise completed.";
+              if (timerDisplay)  timerDisplay.textContent  = "00:00";
+              isRunning = false;
+            }
           }
+        } else {
+          // after exercise → always break
+          startTimer(breakDuration, true);
         }
-      } else {
-        // after exercise → always break
-        startTimer(breakDuration, true);
       }
-    }
-  }, 1000);
-}
-
-function updateTimerDisplay() {
-  const minutes = String(Math.floor(timeLeft / 60)).padStart(2, "0");
-  const seconds = String(timeLeft % 60).padStart(2, "0");
-  timerDisplay.textContent = `${minutes}:${seconds}`;
-}
-
-// 🎛️ buttons
-document.getElementById("start").addEventListener("click", () => {
-  if (!isRunning) {
-    playSound(clickSound);
-    isRunning = true;
-    startTimer(exerciseDuration, false);
+    }, 1000);
   }
-});
 
-document.getElementById("pause").addEventListener("click", () => {
-  if (isRunning) {
+  // 🎛️ buttons (IDs exactly as in your snippet)
+  const startEl = document.getElementById("start");
+  const pauseEl = document.getElementById("pause");
+  const resetEl = document.getElementById("reset");
+  const skipEl  = document.getElementById("skip");
+
+  if (startEl) startEl.addEventListener("click", () => {
+    if (!isRunning) {
+      playSound(clickSound);
+      isRunning = true;
+      startTimer(exerciseDuration, false);
+    }
+  });
+
+  if (pauseEl) pauseEl.addEventListener("click", () => {
+    if (isRunning) {
+      playSound(clickSound);
+      clearInterval(timerInterval);
+      isRunning = false;
+    }
+  });
+
+  if (resetEl) resetEl.addEventListener("click", () => {
     playSound(clickSound);
     clearInterval(timerInterval);
     isRunning = false;
-  }
-});
+    currentExercise = 0;
+    currentSet = 1;
+    inBreak = false;
+    timeLeft = exerciseDuration;
+    if (timerDisplay)  timerDisplay.textContent  = "00:00";
+    if (statusDisplay) statusDisplay.textContent = "Ready";
+    setDots.forEach(dot => dot.classList.remove("done"));
+  });
 
-document.getElementById("reset").addEventListener("click", () => {
-  playSound(clickSound);
-  clearInterval(timerInterval);
-  isRunning = false;
-  currentExercise = 0;
-  currentSet = 1;
-  timeLeft = exerciseDuration;
-  timerDisplay.textContent = "00:00";
-  statusDisplay.textContent = "Ready";
-  setDots.forEach(dot => dot.classList.remove("done"));
-});
+  // ✅ tick/skip: complete current phase immediately
+  if (skipEl) skipEl.addEventListener("click", () => {
+    playSound(clickSound);
+    clearInterval(timerInterval);
+    timeLeft = 0;
 
-// ✅ tick button: skip current exercise/break
-document.getElementById("skip").addEventListener("click", () => {
-  playSound(clickSound);
-  clearInterval(timerInterval);
-  timeLeft = 0;
-
-  if (inBreak) {
-    // skip break
-    if (currentSet < totalSets) {
-      currentSet++;
-      startTimer(exerciseDuration, false);
-    } else {
-      setDots[currentSet - 1].classList.add("done");
-      currentSet = 1;
-      currentExercise++;
-      if (currentExercise < exercises.length) {
-        playSound(newExerciseSound);
-        playSound(rapidPing);
+    if (inBreak) {
+      // skip break
+      if (currentSet < totalSets) {
+        currentSet++;
         startTimer(exerciseDuration, false);
       } else {
-        statusDisplay.textContent = "Exercise completed.";
-        timerDisplay.textContent = "00:00";
-        isRunning = false;
+        if (setDots[currentSet - 1]) setDots[currentSet - 1].classList.add("done");
+        currentSet = 1;
+        currentExercise++;
+        if (currentExercise < exercises.length) {
+          playSound(newExerciseSound);
+          playSound(rapidPing);
+          startTimer(exerciseDuration, false);
+        } else {
+          if (statusDisplay) statusDisplay.textContent = "Exercise completed.";
+          if (timerDisplay)  timerDisplay.textContent  = "00:00";
+          isRunning = false;
+        }
       }
+    } else {
+      // skip exercise → straight to break
+      startTimer(breakDuration, true);
     }
-  } else {
-    // skip exercise → straight to break
-    startTimer(breakDuration, true);
-  }
+  });
 });
