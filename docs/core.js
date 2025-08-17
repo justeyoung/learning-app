@@ -1,9 +1,9 @@
-// core.js — Friday-stable + reliable 5s countdown beeps
+// core.js — Friday-stable + reliable 5s countdown beeps + new_exercise announcement
 
 window.addEventListener('DOMContentLoaded', () => {
   // ===== Config (edit these) =====
-  const EX_TIME = 20;  // seconds per exercise (e.g., 180 for 3 min)
-  const BR_TIME = 20;  // seconds per break    (e.g., 60 for 1 min)
+  const EX_TIME = 10;  // seconds per exercise (e.g., 180 for 3 min)
+  const BR_TIME = 10;  // seconds per break    (e.g., 60 for 1 min)
 
   const NAMES = [
     "Plank",
@@ -21,6 +21,7 @@ window.addEventListener('DOMContentLoaded', () => {
   let exIdx = 0;      // current exercise index
   let setIdx = 1;     // current set (1..3)
   let inBreak = false;
+  let phaseCuePlayed = false; // prevents double-playing new_exercise within a break
 
   // ===== DOM =====
   const $ = id => document.getElementById(id);
@@ -53,11 +54,9 @@ window.addEventListener('DOMContentLoaded', () => {
   const click = new Audio('click.mp3');
   click.preload = 'auto';
   click.volume = 0.45;
-
-  const playClick = () => { try { click.currentTime = 0; click.play().catch(()=>{}); } catch{} };
+  const playClick = () => { try { click.currentTime = 0; click.play().catch(()=>{});} catch{} };
 
   // Countdown beep: mobile-safe + fallback tone
-  // 1) small pool of pre-created audio elements for iOS/Android quirks
   const BEEP_SOURCES = ['beep.mp3', 'countdown_beep.mp3']; // tries in order
   const beepPool = [];
   for (let i = 0; i < 4; i++) {
@@ -69,7 +68,7 @@ window.addEventListener('DOMContentLoaded', () => {
   }
   let beepIdx = 0;
 
-  // 2) WebAudio fallback (never ducks Spotify)
+  // WebAudio fallback (never ducks Spotify)
   let AC = null;
   function ensureAC(){ if (!AC) { try { AC = new (window.AudioContext || window.webkitAudioContext)(); } catch {} } }
   function tone(freq=950, dur=0.12){
@@ -95,7 +94,7 @@ window.addEventListener('DOMContentLoaded', () => {
     ensureAC();
     if (AC && AC.state === 'suspended') { AC.resume().catch(()=>{}); }
     // quietly prime elements so future plays are allowed
-    [...beepPool, click].forEach(a=>{
+    [...beepPool, click, newExerciseSound].forEach(a=>{
       const old = a.volume;
       a.volume = 0.01;
       a.play().then(()=>{ a.pause(); a.currentTime = 0; a.volume = old; }).catch(()=>{ a.volume = old; });
@@ -121,6 +120,15 @@ window.addEventListener('DOMContentLoaded', () => {
     } catch {
       ensureAC(); tone(950, 0.12);
     }
+  }
+
+  // NEW EXERCISE announcement (voice)
+  const newExerciseSound = new Audio('new_exercise.mp3');
+  newExerciseSound.preload = 'auto';
+  newExerciseSound.volume = 0.6;
+  function playNewExerciseOnce(){
+    // play only once per phase; guarded by `phaseCuePlayed`
+    try { newExerciseSound.currentTime = 0; newExerciseSound.play().catch(()=>{}); } catch {}
   }
 
   // ===== UI helpers =====
@@ -194,13 +202,27 @@ window.addEventListener('DOMContentLoaded', () => {
     left -= 1;
     since += 1;
 
-    // 🔔 5-second countdown beeps before ANY phase ends (exercise→break or break→exercise)
+    // 🔔 5-second countdown beeps before ANY phase ends
     if (left > 0 && left <= 5) {
       playBeep();
     }
 
+    // 🔊 NEW: During the 3rd break (setIdx === TOTAL_SETS), if there is a next exercise,
+    // play "new_exercise.mp3" ONCE in the last 5 seconds.
+    if (
+      inBreak &&
+      setIdx === TOTAL_SETS &&
+      exIdx < NAMES.length - 1 &&
+      left > 0 && left <= 5 &&
+      !phaseCuePlayed
+    ) {
+      playNewExerciseOnce();
+      phaseCuePlayed = true;
+    }
+
     if (left <= 0){
       advancePhase();
+      phaseCuePlayed = false; // reset guard for the next phase
     }
     draw();
   }
@@ -230,6 +252,7 @@ window.addEventListener('DOMContentLoaded', () => {
     inBreak = false;
     left = EX_TIME;
     since = 0;
+    phaseCuePlayed = false;
     draw();
   }
   function skip(){ // complete current phase immediately
@@ -238,6 +261,7 @@ window.addEventListener('DOMContentLoaded', () => {
     stop();
     left = 0;
     advancePhase();
+    phaseCuePlayed = false; // new phase will decide cues
     draw();
   }
 
@@ -258,5 +282,5 @@ window.addEventListener('DOMContentLoaded', () => {
   since = 0;
   draw();
 
-  console.log('[core] Friday-stable + reliable countdown beeps loaded');
+  console.log('[core] Friday-stable + countdown + new_exercise cue loaded');
 });
