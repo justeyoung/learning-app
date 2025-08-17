@@ -18,7 +18,7 @@
       </svg>
       <div class="wheel-center">
         <div id="status">Plank</div>
-        <div id="timer">00:20</div>
+        <div id="timer">01:00</div>
       </div>
     </div>
 
@@ -35,14 +35,21 @@
       </div>
     </div>
 
-    <!-- 5 labelled rows -->
-    <div id="exerciseList" class="rows" aria-label="Exercises">
-      <div class="row" id="row0"><span class="name">Plank</span></div>
-      <div class="row" id="row1"><span class="name">Hollow Hold</span></div>
-      <div class="row" id="row2"><span class="name">Side Plank</span></div>
-      <div class="row" id="row3"><span class="name">Leg Raises</span></div>
-      <div class="row" id="row4"><span class="name">Extended Plank</span></div>
-    </div>
+    <!-- Exercises panel (expand/collapse) -->
+    <section id="exercisePanel" class="panel">
+      <button id="exerciseToggle" class="panel-toggle" aria-expanded="true" aria-controls="exerciseList">
+        <span>Exercises</span>
+        <span id="toggleIcon" class="chevron" aria-hidden="true">▾</span>
+      </button>
+
+      <div id="exerciseList" class="rows" aria-label="Exercises">
+        <div class="row" id="row0"><span class="name">Plank</span></div>
+        <div class="row" id="row1"><span class="name">Hollow Hold</span></div>
+        <div class="row" id="row2"><span class="name">Side Plank</span></div>
+        <div class="row" id="row3"><span class="name">Leg Raises</span></div>
+        <div class="row" id="row4"><span class="name">Extended Plank</span></div>
+      </div>
+    </section>
 
     <!-- Symbol controls -->
     <div class="controls">
