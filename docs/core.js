@@ -1,9 +1,9 @@
-// core.js — milestone5 + Skip autostart next phase
+// core.js — milestone5 + 60s phases + Exercises panel toggle + Skip autostart
 
 window.addEventListener('DOMContentLoaded', () => {
   // ===== Config (edit these) =====
-  const EX_TIME = 20;  // seconds per exercise (e.g., 180 for 3 min)
-  const BR_TIME = 20;  // seconds per break    (e.g., 60 for 1 min)
+  const EX_TIME = 60;  // 60s per exercise
+  const BR_TIME = 60;  // 60s per break
 
   const NAMES = [
     "Plank",
@@ -38,6 +38,11 @@ window.addEventListener('DOMContentLoaded', () => {
   const pauseBtn = $('pause') || $('pauseBtn');
   const resetBtn = $('reset') || $('resetBtn');
   const skipBtn  = $('skip')  || $('completeBtn'); // ✔
+
+  // Exercises panel elements
+  const exercisePanel = $('exercisePanel');
+  const exerciseToggle = $('exerciseToggle');
+  const toggleIcon = $('toggleIcon');
 
   // ===== Wheel setup =====
   let C = 0;
@@ -208,7 +213,6 @@ window.addEventListener('DOMContentLoaded', () => {
 
     // 🔊 During the 3rd break, if there is a next exercise, play voice once in last 5s
     if (inBreak && setIdx === TOTAL_SETS && exIdx < NAMES.length - 1 && left > 0 && left <= 5) {
-      // play once per that break (guard using phaseCuePlayed)
       if (!phaseCuePlayed) {
         playNewExerciseOnce();
         phaseCuePlayed = true;
@@ -253,13 +257,12 @@ window.addEventListener('DOMContentLoaded', () => {
   function skip(){ // complete current phase immediately AND AUTOSTART next phase
     primeAudio();
     playClick();
-    stop();                 // stop current interval
+    stop();
     left = 0;
-    advancePhase();         // move to next phase
+    advancePhase();
     phaseCuePlayed = false;
     draw();
-    // NEW: autostart the next phase (no extra tap needed)
-    if (!tickId) tickId = setInterval(tick, 1000);
+    if (!tickId) tickId = setInterval(tick, 1000); // autostart
   }
 
   // Bind (clone to avoid stale handlers)
@@ -274,10 +277,20 @@ window.addEventListener('DOMContentLoaded', () => {
   bind(resetBtn, reset);
   bind(skipBtn,  skip);
 
+  // ===== Exercises panel toggle =====
+  if (exerciseToggle && exercisePanel){
+    exerciseToggle.addEventListener('click', () => {
+      const collapsed = exercisePanel.classList.toggle('collapsed');
+      exerciseToggle.setAttribute('aria-expanded', String(!collapsed));
+      // rotate chevron via CSS (class on panel controls display)
+      if (toggleIcon){ /* purely visual; CSS handles rotation when .collapsed */ }
+    }, { passive:true });
+  }
+
   // ===== Init =====
   left = EX_TIME;
   since = 0;
   draw();
 
-  console.log('[core] milestone5 + Skip autostart loaded');
+  console.log('[core] milestone5 + 60s + panel toggle + Skip autostart loaded');
 });
