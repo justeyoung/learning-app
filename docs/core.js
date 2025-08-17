@@ -1,10 +1,10 @@
-// core.js — milestone5 + 60s phases + Exercises panel toggle + Skip autostart
-// Updated exercise list (Extended Plank, Hollow Hold, Wrist Elbow Crunch, Reverse Crunch, Ab Roller)
+// core.js — milestone5 + 60s + panel toggle + Skip autostart
+// + final celebratory sound and proper "Exercise completed." message in red
 
 window.addEventListener('DOMContentLoaded', () => {
   // ===== Config (edit these) =====
-  const EX_TIME = 10;  // 60s per exercise
-  const BR_TIME = 10;  // 60s per break
+  const EX_TIME = 60;  // 60s per exercise
+  const BR_TIME = 60;  // 60s per break
 
   const NAMES = [
     "Extended Plank",
@@ -22,7 +22,8 @@ window.addEventListener('DOMContentLoaded', () => {
   let exIdx = 0;      // current exercise index
   let setIdx = 1;     // current set (1..3)
   let inBreak = false;
-  let phaseCuePlayed = false; // prevents double-playing new_exercise within a break
+  let phaseCuePlayed = false; // guards new_exercise voice in that break
+  let completed = false;      // session finished
 
   // ===== DOM =====
   const $ = id => document.getElementById(id);
@@ -92,6 +93,12 @@ window.addEventListener('DOMContentLoaded', () => {
     o.stop(t + dur + 0.02);
   }
 
+  // celebratory sound at very end
+  const celebration = new Audio('celebration.mp3'); // put this file next to core.js
+  celebration.preload = 'auto';
+  celebration.volume = 0.7;
+  function playCelebration(){ try { celebration.currentTime = 0; celebration.play().catch(()=>{});} catch{} }
+
   // Unlock audio on first user gesture
   let audioPrimed = false;
   function primeAudio(){
@@ -100,7 +107,7 @@ window.addEventListener('DOMContentLoaded', () => {
     ensureAC();
     if (AC && AC.state === 'suspended') { AC.resume().catch(()=>{}); }
     // quietly prime elements so future plays are allowed
-    [...beepPool, click, newExerciseSound].forEach(a=>{
+    [...beepPool, click, celebration, newExerciseSound].forEach(a=>{
       const old = a.volume;
       a.volume = 0.01;
       a.play().then(()=>{ a.pause(); a.currentTime = 0; a.volume = old; }).catch(()=>{ a.volume = old; });
@@ -165,6 +172,14 @@ window.addEventListener('DOMContentLoaded', () => {
   }
 
   function draw(){
+    if (completed){
+      if (statusEl){ statusEl.textContent = "Exercise completed."; statusEl.className = "status done"; }
+      if (timerEl){ timerEl.textContent = "00:00"; }
+      updateWheel();
+      paintRows();
+      paintTics();
+      return;
+    }
     if (statusEl) statusEl.textContent = inBreak ? "Break" : NAMES[exIdx];
     if (timerEl)  timerEl.textContent  = fmt(left);
     if (sinceEl)  sinceEl.textContent  = fmt(since);
@@ -181,29 +196,32 @@ window.addEventListener('DOMContentLoaded', () => {
         setIdx += 1;          // next set of same exercise
         inBreak = false;
         left = EX_TIME;
-        return;
+        return false;
       }
       // finished 3 sets -> next exercise
       setIdx = 1;
       exIdx += 1;
       if (exIdx >= NAMES.length){
+        // ✅ session completed right here (end of the last break)
         stop();
-        if (statusEl) statusEl.textContent = "Exercise completed.";
+        completed = true;
         left = 0;
-        return;
+        playCelebration();
+        return true; // signal completion
       }
       inBreak = false;
       left = EX_TIME;
-      return;
+      return false;
     } else {
       // finished an exercise block -> go to break
       inBreak = true;
       left = BR_TIME;
-      return;
+      return false;
     }
   }
 
   function tick(){
+    if (completed) return; // safety
     left -= 1;
     since += 1;
 
@@ -221,15 +239,19 @@ window.addEventListener('DOMContentLoaded', () => {
     }
 
     if (left <= 0){
-      advancePhase();
+      const done = advancePhase();
       phaseCuePlayed = false; // reset guard for next phase
+      if (done){
+        draw();               // draw final "Exercise completed."
+        return;               // don't continue
+      }
     }
     draw();
   }
 
   // ===== Controls =====
   function start(){
-    if (tickId) return;
+    if (tickId || completed) return;
     primeAudio();  // unlock sounds on first user action
     playClick();
     tickId = setInterval(tick, 1000);
@@ -252,18 +274,20 @@ window.addEventListener('DOMContentLoaded', () => {
     inBreak = false;
     left = EX_TIME;
     since = 0;
+    completed = false;
     phaseCuePlayed = false;
     draw();
   }
-  function skip(){ // complete current phase immediately AND AUTOSTART next phase
+  function skip(){ // complete current phase immediately; autostart unless finished
+    if (completed) return;
     primeAudio();
     playClick();
     stop();
     left = 0;
-    advancePhase();
+    const done = advancePhase();
     phaseCuePlayed = false;
     draw();
-    if (!tickId) tickId = setInterval(tick, 1000); // autostart
+    if (!done && !tickId) tickId = setInterval(tick, 1000); // autostart next phase if not finished
   }
 
   // Bind (clone to avoid stale handlers)
@@ -283,8 +307,7 @@ window.addEventListener('DOMContentLoaded', () => {
     exerciseToggle.addEventListener('click', () => {
       const collapsed = exercisePanel.classList.toggle('collapsed');
       exerciseToggle.setAttribute('aria-expanded', String(!collapsed));
-      // rotate chevron via CSS (class on panel controls display)
-      if (toggleIcon){ /* purely visual; CSS handles rotation when .collapsed */ }
+      if (toggleIcon){ /* purely visual; CSS handles rotation via .collapsed */ }
     }, { passive:true });
   }
 
@@ -293,5 +316,5 @@ window.addEventListener('DOMContentLoaded', () => {
   since = 0;
   draw();
 
-  console.log('[core] milestone5 + 60s + panel toggle + Skip autostart loaded');
+  console.log('[core] milestone5 + final celebration + proper completion message');
 });
