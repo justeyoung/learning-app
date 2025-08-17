@@ -16,8 +16,8 @@ window.addEventListener('DOMContentLoaded', () => {
   const TOTAL_SETS = 3;
 
   // ----- Config -----
-  const EX_TIME = 20;           // change to 180 for 3 minutes
-  const BR_TIME = 20;
+  const EX_TIME = 30;           // change to 180 for 3 minutes
+  const BR_TIME = 30;
 
   const NAMES = [
     "Plank",
