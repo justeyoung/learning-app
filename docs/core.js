@@ -1,136 +1,132 @@
-// core.js — same behavior, robust button wiring (supports both ID schemes), inBreak fixed
+// core.js — robust selectors, safe wiring, inBreak fixed, single "new exercise" ping
+// Keeps your behavior: 20s exercise, 20s break, 3 sets per exercise,
+// 5s countdown ONLY for exercise→break, new exercise alert once.
 
 window.addEventListener('DOMContentLoaded', () => {
+  // ----- State -----
   let timerInterval;
   let timeLeft = 0;
   let isRunning = false;
   let currentExercise = 0;
   let currentSet = 1;
-  let inBreak = false;      // keep this in sync
+  let inBreak = false;
   const totalSets = 3;
 
+  // ----- Config -----
   const exercises = ["Plank", "Hollow Hold", "Side Plank", "Leg Raises", "Extended Plank"];
-  const exerciseDuration = 20; // seconds (testing)
-  const breakDuration = 20;    // seconds (testing)
+  const exerciseDuration = 20; // seconds
+  const breakDuration    = 20; // seconds
 
-  const timerDisplay = document.getElementById("time");
-  const statusDisplay = document.getElementById("status");
-  const sinceStartDisplay = document.getElementById("since-start"); // safe if null
-  const exerciseList = document.getElementById("exercise-list");    // safe if null
-  const setDots = document.querySelectorAll(".set-dot");
+  // ----- DOM (tolerant to ID differences) -----
+  const $ = (id) => document.getElementById(id);
+  const timerDisplay  = $('time') || $('timer');     // support either #time or #timer
+  const statusDisplay = $('status') || $('phase');   // fallback if page used a different id
+  const setDots       = document.querySelectorAll('.set-dot, .tic'); // support either class
 
-  // 🔊 sounds
+  // ----- Sounds (short; shouldn’t duck Spotify) -----
   const clickSound        = new Audio("click.mp3");
   const countdownBeep     = new Audio("beep.mp3");
-  const newExerciseSound  = new Audio("new_exercise.mp3");  // spoken alert (keep/disable as you prefer)
-  const rapidPing         = new Audio("digital_ping.mp3");  // short alert
+  const newExerciseSound  = new Audio("new_exercise.mp3");  // play once at exercise change
+  const rapidPing         = new Audio("digital_ping.mp3");  // keep single ping only
 
-  [clickSound, countdownBeep, newExerciseSound, rapidPing].forEach(s => {
-    s.preload = "auto";
-    s.volume = 0.35; // short effects; shouldn't duck Spotify
+  [clickSound, countdownBeep, newExerciseSound, rapidPing].forEach(a => {
+    a.preload = "auto";
+    a.volume = 0.35;
   });
 
-  function playSound(sound) {
-    try {
-      sound.currentTime = 0;
-      sound.play().catch(() => {});
-    } catch {}
-  }
+  const playSound = (a) => { try { a.currentTime = 0; a.play().catch(()=>{}); } catch {} };
 
+  // ----- UI helpers -----
   function updateTimerDisplay() {
-    const minutes = String(Math.floor(timeLeft / 60)).padStart(2, "0");
-    const seconds = String(timeLeft % 60).padStart(2, "0");
-    if (timerDisplay) timerDisplay.textContent = `${minutes}:${seconds}`;
+    const m = String(Math.floor(timeLeft / 60)).padStart(2, "0");
+    const s = String(timeLeft % 60).padStart(2, "0");
+    if (timerDisplay) timerDisplay.textContent = `${m}:${s}`;
   }
 
+  function setStatus(text, isBreakPhase) {
+    if (!statusDisplay) return;
+    statusDisplay.textContent = text;
+    statusDisplay.className = isBreakPhase ? "status break" : "status exercise";
+  }
+
+  // ----- Engine -----
   function startTimer(duration, isBreakPhase = false) {
     timeLeft = duration;
-    inBreak = isBreakPhase; // ✅ keep this updated
+    inBreak  = isBreakPhase;
     updateTimerDisplay();
-
-    if (statusDisplay) {
-      statusDisplay.textContent = isBreakPhase ? "Break" : exercises[currentExercise];
-      statusDisplay.className = isBreakPhase ? "status break" : "status exercise";
-    }
+    setStatus(isBreakPhase ? "Break" : exercises[currentExercise], isBreakPhase);
 
     clearInterval(timerInterval);
     timerInterval = setInterval(() => {
       timeLeft--;
       updateTimerDisplay();
 
-      // ⏱️ countdown beeps (last 5 sec of any phase)
-      if (timeLeft <= 5 && timeLeft > 0) playSound(countdownBeep);
+      // Beeps ONLY before exercise→break (what you asked)
+      if (!inBreak && timeLeft <= 5 && timeLeft > 0) {
+        playSound(countdownBeep);
+      }
 
       if (timeLeft <= 0) {
         clearInterval(timerInterval);
 
-        if (isBreakPhase) {
-          // after break
+        if (inBreak) {
+          // break ended
           if (currentSet < totalSets) {
             currentSet++;
             startTimer(exerciseDuration, false);
           } else {
-            // all 3 sets done → move to next exercise
+            // all 3 sets done → next exercise
             if (setDots[currentSet - 1]) setDots[currentSet - 1].classList.add("done");
             currentSet = 1;
             currentExercise++;
 
             if (currentExercise < exercises.length) {
-              // special alert before a NEW exercise (single hits)
-              // If you want ONLY one of these, comment the other.
-              playSound(newExerciseSound);
-              playSound(rapidPing);
-
+              // SINGLE alert before NEW exercise (not between sets)
+              playSound(newExerciseSound); // comment this if you only want ping
+              // playSound(rapidPing);     // OR swap to ping if you prefer that instead of voice
               startTimer(exerciseDuration, false);
             } else {
-              if (statusDisplay) statusDisplay.textContent = "Exercise completed.";
-              if (timerDisplay)  timerDisplay.textContent  = "00:00";
+              setStatus("Exercise completed.", false);
+              if (timerDisplay) timerDisplay.textContent = "00:00";
               isRunning = false;
             }
           }
         } else {
-          // after exercise → always break
+          // exercise ended → always break
           startTimer(breakDuration, true);
         }
       }
     }, 1000);
   }
 
-  // ---- Robust button wiring (supports both id styles) ----
-  const $ = (id) => document.getElementById(id);
-  const startEls   = [$('start'), $('startBtn')].filter(Boolean);
-  const pauseEls   = [$('pause'), $('pauseBtn')].filter(Boolean);
-  const resetEls   = [$('reset'), $('resetBtn')].filter(Boolean);
-  const skipEls    = [$('skip'), $('completeBtn')].filter(Boolean); // tick/complete
+  // ----- Buttons (support either id scheme) -----
+  const startBtn = $('start') || $('startBtn');
+  const pauseBtn = $('pause') || $('pauseBtn');
+  const resetBtn = $('reset') || $('resetBtn');
+  const skipBtn  = $('skip')  || $('completeBtn'); // tick/complete
 
-  // Helper to bind safely (and avoid double-binding on hot reload)
-  function bindClick(el, handler) {
+  function bind(el, handler){
     if (!el) return;
-    const clone = el.cloneNode(true);
+    const clone = el.cloneNode(true);        // nuke any stale listeners
     el.parentNode.replaceChild(clone, el);
     clone.addEventListener('click', handler, { passive: true });
   }
 
-  // Start
-  startEls.forEach(el => bindClick(el, () => {
-    if (!isRunning) {
-      playSound(clickSound);
-      isRunning = true;
-      startTimer(exerciseDuration, false);
-    }
-  }));
+  bind(startBtn, () => {
+    if (isRunning) return;
+    playSound(clickSound);
+    isRunning = true;
+    startTimer(exerciseDuration, false);
+  });
 
-  // Pause
-  pauseEls.forEach(el => bindClick(el, () => {
-    if (isRunning) {
-      playSound(clickSound);
-      clearInterval(timerInterval);
-      isRunning = false;
-    }
-  }));
+  bind(pauseBtn, () => {
+    if (!isRunning) return;
+    playSound(clickSound);
+    clearInterval(timerInterval);
+    isRunning = false;
+  });
 
-  // Reset
-  resetEls.forEach(el => bindClick(el, () => {
+  bind(resetBtn, () => {
     playSound(clickSound);
     clearInterval(timerInterval);
     isRunning = false;
@@ -138,13 +134,13 @@ window.addEventListener('DOMContentLoaded', () => {
     currentSet = 1;
     inBreak = false;
     timeLeft = exerciseDuration;
-    if (timerDisplay)  timerDisplay.textContent  = "00:00";
-    if (statusDisplay) statusDisplay.textContent = "Ready";
-    setDots.forEach(dot => dot.classList.remove("done"));
-  }));
+    updateTimerDisplay();
+    setStatus("Ready", false);
+    setDots.forEach(d => d.classList && d.classList.remove("done"));
+  });
 
-  // Skip / Complete current phase
-  skipEls.forEach(el => bindClick(el, () => {
+  // Complete current phase immediately
+  bind(skipBtn, () => {
     playSound(clickSound);
     clearInterval(timerInterval);
     timeLeft = 0;
@@ -159,13 +155,11 @@ window.addEventListener('DOMContentLoaded', () => {
         currentSet = 1;
         currentExercise++;
         if (currentExercise < exercises.length) {
-          // single alert before next exercise
-          playSound(newExerciseSound);
-          playSound(rapidPing);
+          playSound(newExerciseSound); // or playSound(rapidPing);
           startTimer(exerciseDuration, false);
         } else {
-          if (statusDisplay) statusDisplay.textContent = "Exercise completed.";
-          if (timerDisplay)  timerDisplay.textContent  = "00:00";
+          setStatus("Exercise completed.", false);
+          if (timerDisplay) timerDisplay.textContent = "00:00";
           isRunning = false;
         }
       }
@@ -173,10 +167,16 @@ window.addEventListener('DOMContentLoaded', () => {
       // skip exercise → straight to break
       startTimer(breakDuration, true);
     }
-  }));
+  });
 
-  // Log what got bound (helps diagnose if still not responding)
-  console.log('[core] buttons wired:', {
-    start: startEls.length, pause: pauseEls.length, reset: resetEls.length, skip: skipEls.length
+  // Initial paint (so you see 00:00 / Ready)
+  timeLeft = exerciseDuration;
+  updateTimerDisplay();
+  setStatus("Ready", false);
+
+  // Debug: see what got wired
+  console.log('[core] wired:', {
+    start: !!startBtn, pause: !!pauseBtn, reset: !!resetBtn, skip: !!skipBtn,
+    timerDisplay: !!timerDisplay, statusDisplay: !!statusDisplay, setDots: setDots.length
   });
 });
