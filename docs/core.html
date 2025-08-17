@@ -17,17 +17,17 @@
         <circle id="wheelProgress" class="progress exercise" cx="60" cy="60" r="54" />
       </svg>
       <div class="wheel-center">
-        <div id="status">Extended Plank</div>
-        <div id="timer">00:10</div>
+        <div id="status">Plank</div>
+        <div id="timer">00:20</div>
       </div>
     </div>
 
     <!-- Sets + since start -->
     <div class="sets-line">
       <div class="sets" aria-label="Sets">
-        <span class="tic" id="tic1"></span>
-        <span class="tic" id="tic2"></span>
-        <span class="tic" id="tic3"></span>
+        <span class="tic set-dot" id="tic1"></span>
+        <span class="tic set-dot" id="tic2"></span>
+        <span class="tic set-dot" id="tic3"></span>
       </div>
       <div class="since">
         <span class="label">Since start:</span>
@@ -37,19 +37,19 @@
 
     <!-- 5 labelled rows -->
     <div id="exerciseList" class="rows" aria-label="Exercises">
-      <div class="row" id="row0"><span class="name">Extended Plank</span></div>
+      <div class="row" id="row0"><span class="name">Plank</span></div>
       <div class="row" id="row1"><span class="name">Hollow Hold</span></div>
-      <div class="row" id="row2"><span class="name">Wrist to Knee Crunch</span></div>
-      <div class="row" id="row3"><span class="name">AB Roll Out</span></div>
-      <div class="row" id="row4"><span class="name">Reverse Crunch</span></div>
+      <div class="row" id="row2"><span class="name">Side Plank</span></div>
+      <div class="row" id="row3"><span class="name">Leg Raises</span></div>
+      <div class="row" id="row4"><span class="name">Extended Plank</span></div>
     </div>
 
     <!-- Symbol controls -->
     <div class="controls">
-      <button id="startBtn" aria-label="Start">▶️</button>
-      <button id="pauseBtn" aria-label="Pause">⏸️</button>
-      <button id="resetBtn" aria-label="Reset">🔄</button>
-      <button id="completeBtn" aria-label="Complete current phase">✔️</button>
+      <button id="start"  aria-label="Start">▶️</button>
+      <button id="pause"  aria-label="Pause">⏸️</button>
+      <button id="reset"  aria-label="Reset">🔄</button>
+      <button id="skip"   aria-label="Complete current phase">✔️</button>
     </div>
 
     <div class="home-wrap">
@@ -57,7 +57,6 @@
     </div>
   </main>
 
-  <!-- cache-bust to defeat Safari caching -->
-  <script src="core.js?v=final-10s-led-icons"></script>
+  <script src="core.js"></script>
 </body>
 </html>
