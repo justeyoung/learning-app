@@ -13,12 +13,9 @@
     <!-- Timer wheel -->
     <div class="wheel-wrap">
       <svg class="wheel" viewBox="0 0 120 120" aria-hidden="true">
-        <!-- track -->
         <circle class="track" cx="60" cy="60" r="54" />
-        <!-- animated progress -->
         <circle id="wheelProgress" class="progress exercise" cx="60" cy="60" r="54" />
       </svg>
-      <!-- centered labels over the wheel -->
       <div class="wheel-center">
         <div id="status">Extended Plank</div>
         <div id="timer">00:10</div>
@@ -52,6 +49,7 @@
       <button id="startBtn">Start</button>
       <button id="pauseBtn">Pause</button>
       <button id="resetBtn">Reset</button>
+      <button id="completeBtn" title="Complete current phase">✓</button>
     </div>
 
     <div class="home-wrap">
@@ -59,7 +57,7 @@
     </div>
   </main>
 
-  <!-- cache-bust to defeat Safari caching -->
-  <script src="core.js?v=fix-wheel-10s"></script>
+  <!-- cache-bust -->
+  <script src="core.js?v=tick-complete-A"></script>
 </body>
 </html>
