@@ -1,16 +1,9 @@
-// core.js — Friday-stable + 5s countdown beeps
-// - Animated wheel (red exercise / blue break)
-// - EX_TIME / BR_TIME at the top
-// - 20s exercise / 20s break; 3 sets per exercise
-// - LED highlight only for current row; completed rows neutral
-// - 3 dots show sets progress for the CURRENT exercise
-// - Buttons: start / pause / reset / skip (icons)
-// - Sounds: button click + 5,4,3,2,1 countdown beeps before ANY phase ends
+// core.js — Friday-stable + reliable 5s countdown beeps
 
 window.addEventListener('DOMContentLoaded', () => {
   // ===== Config (edit these) =====
-  const EX_TIME = 20;  // seconds per exercise (e.g. 180 for 3 minutes)
-  const BR_TIME = 20;  // seconds per break    (e.g. 60 for 1 minute)
+  const EX_TIME = 20;  // seconds per exercise (e.g., 180 for 3 min)
+  const BR_TIME = 20;  // seconds per break    (e.g., 60 for 1 min)
 
   const NAMES = [
     "Plank",
@@ -56,20 +49,78 @@ window.addEventListener('DOMContentLoaded', () => {
   }
 
   // ===== Sounds =====
-  // Button click (short UI blip, Spotify-safe)
+  // Button click (short UI blip; Spotify-safe)
   const click = new Audio('click.mp3');
   click.preload = 'auto';
   click.volume = 0.45;
-  const playClick = () => { try { click.currentTime = 0; click.play().catch(()=>{});} catch{} };
 
-  // Countdown beep: create a fresh Audio each time (mobile-safe)
+  const playClick = () => { try { click.currentTime = 0; click.play().catch(()=>{}); } catch{} };
+
+  // Countdown beep: mobile-safe + fallback tone
+  // 1) small pool of pre-created audio elements for iOS/Android quirks
+  const BEEP_SOURCES = ['beep.mp3', 'countdown_beep.mp3']; // tries in order
+  const beepPool = [];
+  for (let i = 0; i < 4; i++) {
+    const src = BEEP_SOURCES[i % BEEP_SOURCES.length];
+    const a = new Audio(src);
+    a.preload = 'auto';
+    a.volume = 0.9;
+    beepPool.push(a);
+  }
+  let beepIdx = 0;
+
+  // 2) WebAudio fallback (never ducks Spotify)
+  let AC = null;
+  function ensureAC(){ if (!AC) { try { AC = new (window.AudioContext || window.webkitAudioContext)(); } catch {} } }
+  function tone(freq=950, dur=0.12){
+    if (!AC) return;
+    const t = AC.currentTime;
+    const o = AC.createOscillator();
+    const g = AC.createGain();
+    o.type = 'square';
+    o.frequency.value = freq;
+    g.gain.value = 0.0001;
+    o.connect(g).connect(AC.destination);
+    o.start(t);
+    g.gain.exponentialRampToValueAtTime(0.25, t + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.stop(t + dur + 0.02);
+  }
+
+  // Unlock audio on first user gesture
+  let audioPrimed = false;
+  function primeAudio(){
+    if (audioPrimed) return;
+    audioPrimed = true;
+    ensureAC();
+    if (AC && AC.state === 'suspended') { AC.resume().catch(()=>{}); }
+    // quietly prime elements so future plays are allowed
+    [...beepPool, click].forEach(a=>{
+      const old = a.volume;
+      a.volume = 0.01;
+      a.play().then(()=>{ a.pause(); a.currentTime = 0; a.volume = old; }).catch(()=>{ a.volume = old; });
+    });
+  }
+
   function playBeep(){
+    // try Audio element first; if blocked, fallback to tone
+    const a = beepPool[beepIdx++ % beepPool.length];
     try {
-      const b = new Audio('beep.mp3'); // keep this short/mono
-      b.volume = 0.9;
-      // keep snappy even if file is longer than ~200ms
-      b.play().then(()=> setTimeout(()=>{ try{ b.pause(); b.currentTime=0; }catch{} }, 250)).catch(()=>{});
-    } catch {}
+      a.currentTime = 0;
+      const p = a.play();
+      if (p && typeof p.then === 'function') {
+        p.then(()=> {
+          // chop long files to keep it snappy
+          setTimeout(()=>{ try{ a.pause(); a.currentTime = 0; }catch{} }, 220);
+        }).catch(()=> {
+          ensureAC(); tone(950, 0.12);
+        });
+      } else {
+        setTimeout(()=>{ try{ a.pause(); a.currentTime = 0; }catch{} }, 220);
+      }
+    } catch {
+      ensureAC(); tone(950, 0.12);
+    }
   }
 
   // ===== UI helpers =====
@@ -157,11 +208,13 @@ window.addEventListener('DOMContentLoaded', () => {
   // ===== Controls =====
   function start(){
     if (tickId) return;
+    primeAudio();  // unlock sounds on first user action
     playClick();
     tickId = setInterval(tick, 1000);
   }
   function pause(){
     if (!tickId) return;
+    primeAudio();
     playClick();
     clearInterval(tickId); tickId = null;
   }
@@ -169,6 +222,7 @@ window.addEventListener('DOMContentLoaded', () => {
     if (tickId){ clearInterval(tickId); tickId = null; }
   }
   function reset(){
+    primeAudio();
     playClick();
     stop();
     exIdx = 0;
@@ -179,6 +233,7 @@ window.addEventListener('DOMContentLoaded', () => {
     draw();
   }
   function skip(){ // complete current phase immediately
+    primeAudio();
     playClick();
     stop();
     left = 0;
@@ -203,5 +258,5 @@ window.addEventListener('DOMContentLoaded', () => {
   since = 0;
   draw();
 
-  console.log('[core] Friday-stable + countdown loaded');
+  console.log('[core] Friday-stable + reliable countdown beeps loaded');
 });
