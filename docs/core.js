@@ -15,8 +15,8 @@ window.addEventListener('DOMContentLoaded', () => {
 
   // ----- Config -----
   const exercises = ["Plank", "Hollow Hold", "Side Plank", "Leg Raises", "Extended Plank"];
-  const exerciseDuration = 20; // seconds
-  const breakDuration    = 20; // seconds
+  const exerciseDuration = 13; // seconds
+  const breakDuration    = 13; // seconds
 
   // ----- DOM (tolerant) -----
   const $ = (id) => document.getElementById(id);
