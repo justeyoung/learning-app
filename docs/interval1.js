@@ -73,7 +73,7 @@ function beepShort(freq = 880, dur = 0.08, vol = 0.15){
 }
 
 function playPhaseAudio(audioFile){
-  const audio = new Audio(`./doc/${audioFile}`);
+  const audio = new Audio(`./${audioFile}`);
   audio.play().catch(err => console.warn("Audio play error:", err));
 }
 
