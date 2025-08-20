@@ -1,1 +1,205 @@
+/* ===== Layout ===== */
+.container {
+  max-width: 520px;
+  margin: 0 auto;
+  padding: 16px;
+  text-align: center;
+}
 
+h1 {
+  font-size: 1.4rem;
+  margin: 10px 0 16px;
+}
+
+/* ===== Wheel ===== */
+.wheel-wrap {
+  position: relative;
+  width: 260px;
+  height: 260px;
+  margin: 0 auto 16px;
+  z-index: 1;
+}
+
+.wheel {
+  display: block;
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+  pointer-events: none;
+}
+
+.progress {
+  stroke-dasharray: 691;
+  stroke-dashoffset: 0;
+  transition: stroke-dashoffset 0.05s linear;
+}
+
+.wheel-center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+#phaseLabel {
+  font-size: 1.05rem;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+#timeLabel {
+  font-size: 2.3rem;
+  font-weight: 800;
+  letter-spacing: .5px;
+}
+
+/* ===== Overall progress + segments ===== */
+.overall {
+  margin: 8px 0 6px;
+}
+
+.overall-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: #9aa0a6;
+  font-size: .9rem;
+  margin-bottom: 6px;
+}
+
+.segbar {
+  display: flex;
+  gap: 4px;
+  margin: 4px 0 8px;
+}
+
+.segbar .seg {
+  position: relative;
+  height: 12px;
+  flex: 1;
+  border-radius: 6px;
+  background: #2b2f36;
+  border: 1px solid #262a33;
+  opacity: .9;
+}
+
+.segbar .seg[data-type="warm"] { background: rgba(255,160,67,.25);  border-color: #5a3d14; }
+.segbar .seg[data-type="fast"] { background: rgba(255,45,85,.25);   border-color: #5b1220; }
+.segbar .seg[data-type="slow"] { background: rgba(77,163,255,.25);  border-color: #143659; }
+.segbar .seg[data-type="cool"] { background: rgba(52,211,153,.25);  border-color: #0f3f2d; }
+
+.segbar .seg.done[data-type="warm"] { background: rgba(255,160,67,.85); }
+.segbar .seg.done[data-type="fast"] { background: rgba(255,45,85,.85); }
+.segbar .seg.done[data-type="slow"] { background: rgba(77,163,255,.85); }
+.segbar .seg.done[data-type="cool"] { background: rgba(52,211,153,.85); }
+
+.overall-bar {
+  position: relative;
+  height: 6px;
+  border-radius: 3px;
+  overflow: hidden;
+  background: #151820;
+  border: 1px solid #262a33;
+}
+
+#overall-fill {
+  position: absolute;
+  inset: 0;
+  width: 0%;
+  background: linear-gradient(90deg,#ff2d55,#ff7a7a);
+  transition: width .12s linear;
+}
+
+.overall-info {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  color: #9aa0a6;
+  margin-top: 6px;
+  font-size: .9rem;
+}
+
+.overall-info > div {
+  flex: 1;
+}
+
+.overall-info small {
+  display: block;
+  opacity: .8;
+  margin-bottom: 2px;
+}
+
+/* ===== Controls ===== */
+.controls .row {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin: 12px 0 14px;
+  position: relative;
+  z-index: 5;
+}
+
+.controls button {
+  background: #2b2f36;
+  color: #fff;
+  border: 1px solid #262a33;
+  border-radius: 10px;
+  padding: 10px 16px;
+  font-size: 1.3rem;
+  cursor: pointer;
+}
+
+.controls button:active {
+  transform: translateY(1px);
+}
+
+button.active {
+  background: #ff2d55 !important;
+  color: #fff !important;
+  border-color: transparent;
+}
+
+/* ===== Status ===== */
+.status {
+  min-height: 20px;
+  font-size: .95rem;
+  color: salmon;
+  margin-bottom: 12px;
+}
+
+/* ===== Home button ===== */
+.home-btn {
+  display: inline-block;
+  background: #2b2f36;
+  color: #fff;
+  padding: 10px 16px;
+  border-radius: 10px;
+  text-decoration: none;
+  border: 1px solid #262a33;
+  position: relative;
+  z-index: 5;
+}
+
+.home-btn:hover {
+  background: #3a3f48;
+}
+
+/* ===== Small phones ===== */
+@media (max-width: 380px) {
+  .wheel-wrap {
+    width: 220px;
+    height: 220px;
+  }
+
+  #timeLabel {
+    font-size: 2rem;
+  }
+
+  .controls button {
+    padding: 8px 10px;
+    font-size: 1.1rem;
+  }
+}
