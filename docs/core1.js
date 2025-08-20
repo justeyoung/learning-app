@@ -1,4 +1,4 @@
-// core.js — milestone6 + per-exercise start voices (5x, first time only)
+// core1.js — milestone6 + per-exercise start voices (5x, first time only)
 
 window.addEventListener('DOMContentLoaded', () => {
   // ===== Config =====
