@@ -2,8 +2,8 @@
 
 window.addEventListener('DOMContentLoaded', () => {
   // ===== Config =====
-  const EX_TIME = 10;  // 60s per exercise
-  const BR_TIME = 10;  // 60s per break
+  const EX_TIME = 60;  // 60s per exercise
+  const BR_TIME = 60;  // 60s per break
 
   const NAMES = [
     "Extended Plank",
