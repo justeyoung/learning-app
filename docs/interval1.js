@@ -1,5 +1,3 @@
-// ===== Japanese Interval Walking – interval1.js (with voice cues) =====
-
 const PHASE_LEN = 15;
 const plan = [
   { name: 'Warm-up', type: 'warm', secs: PHASE_LEN, audio: 'Warm_up.mp3' },
@@ -30,6 +28,7 @@ const wheelProgress = $('wheelProgress');
 const startBtn = $('startBtn');
 const pauseBtn = $('pauseBtn');
 const resetBtn = $('resetBtn');
+const skipBtn = $('skipBtn');
 
 function buildSegments(){
   segBar.innerHTML = '';
@@ -73,7 +72,7 @@ function beepShort(freq = 880, dur = 0.08, vol = 0.15){
 }
 
 function playPhaseAudio(audioFile){
-  const audio = new Audio(`./${audioFile}`);
+  const audio = new Audio(audioFile);
   audio.play().catch(err => console.warn("Audio play error:", err));
 }
 
@@ -134,7 +133,6 @@ function tick(ts){
 
   const step = plan[stepIndex];
 
-  // Play voice audio once per phase start
   if (lastAudioPhaseIndex !== stepIndex) {
     lastAudioPhaseIndex = stepIndex;
     playPhaseAudio(step.audio);
@@ -216,6 +214,11 @@ function resetWorkout(){
   updateUI();
 }
 
+function skipPhase(){
+  if (!running) return;
+  phaseElapsed = plan[stepIndex]?.secs || 0;
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   if (!segBar.children.length) buildSegments();
 
@@ -225,6 +228,7 @@ document.addEventListener('DOMContentLoaded', () => {
   startBtn?.addEventListener('click', e => { e.preventDefault(); startWorkout(); });
   pauseBtn?.addEventListener('click', e => { e.preventDefault(); pauseWorkout(); });
   resetBtn?.addEventListener('click', e => { e.preventDefault(); resetWorkout(); });
+  skipBtn?.addEventListener('click', e => { e.preventDefault(); skipPhase(); });
 
   window.addEventListener('touchstart', ensureAudio, { once:true });
 });
@@ -232,3 +236,4 @@ document.addEventListener('DOMContentLoaded', () => {
 window.startWorkout = startWorkout;
 window.pauseWorkout = pauseWorkout;
 window.resetWorkout = resetWorkout;
+window.skipPhase = skipPhase;
