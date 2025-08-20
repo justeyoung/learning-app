@@ -1,4 +1,4 @@
-const PHASE_LEN = 15;
+const PHASE_LEN = 180;
 const plan = [
   { name: 'Warm-up', type: 'warm', secs: PHASE_LEN, audio: 'Warm_up.mp3' },
   { name: 'Fast', type: 'fast', secs: PHASE_LEN, audio: 'Walk_faster.mp3' },
