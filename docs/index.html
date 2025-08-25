@@ -1,27 +1,50 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Home Page</title>
-  <link rel="stylesheet" href="style.css" />
+  <style>
+    body {
+      background-color: #111;
+      color: #fff;
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding-top: 100px;
+    }
+    h1 {
+      margin-bottom: 40px;
+    }
+    .menu {
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+    .menu a button {
+      background: #333;
+      color: #fff;
+      border: none;
+      padding: 12px 20px;
+      font-size: 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+    .menu a button:hover {
+      background: #555;
+    }
+  </style>
 </head>
 <body>
 
-  <div id="landing">
-    <h1>Home Page</h1>
+  <h1>Home Page</h1>
 
-    <a href="counter.html">
-      <button>Exercise Counter</button>
-    </a>
-
-    <a href="interval.html">
-      <button>Interval Walking</button>
-    </a>
-
-    <a href="core.html">
-      <button>Core Exercise Timer</button>
-    </a>
+  <div class="menu">
+    <a href="counter.html"><button>Exercise Counter</button></a>
+    <a href="interval.html"><button>Interval Walking</button></a>
+    <a href="core.html"><button>Core Exercise Timer</button></a>
+    <a href="../Axis/index.html"><button>Axis</button></a>
   </div>
 
 </body>
