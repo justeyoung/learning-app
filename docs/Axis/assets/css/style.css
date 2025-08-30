@@ -1,157 +1,79 @@
 :root{
-  --bg:#000;
-  --fg:#eee;
-  --muted:#9aa0a6;
-
-  --ring-track:#2b2b2b;
-  --ring-ex:#ff2d55;    /* red (exercise) */
-  --ring-br:#00aaff;    /* blue (break) */
-
-  --led-green:#00ff88;  /* LED text */
-  --led-blue:#3db3ff;
+  --bg:#0f1115; --panel:#151821; --text:#ffffff; --muted:#a8b0c0;
+  --accent:#36d7b7; --track:#2a2f3a; --arc:#36d7b7;
 }
 
 *{box-sizing:border-box}
-html,body{height:100%}
-body{
-  margin:0;
-  background:var(--bg);
-  color:var(--fg);
-  font-family:system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
-}
+html,body{margin:0;padding:0;height:100%}
+body.dark{background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
 
-.wrap{max-width:700px;margin:24px auto;padding:16px}
-h1{text-align:center;margin:8px 0 12px;font-size:24px}
+/* screens */
+.screen{display:none;min-height:100dvh;padding-bottom:88px}
+.screen.active{display:block}
 
-/* Wheel */
-.wheel-wrap{position:relative;width:260px;height:260px;margin:12px auto}
-.wheel{width:100%;height:100%}
-.track{
-  fill:none;
-  stroke:var(--ring-track);
-  stroke-width:12;
-}
-.progress{
-  fill:none;
-  stroke:var(--ring-ex);
-  stroke-width:12;
-  stroke-linecap:round;
-  transform:rotate(-90deg);
-  transform-origin:50% 50%;
-  stroke-dasharray:0 999; /* set in JS */
-}
-.progress.break{ stroke:var(--ring-br); }
-.progress.exercise{ stroke:var(--ring-ex); }
+/* top/bottom bars */
+.topbar{display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--panel);position:sticky;top:0;z-index:5;border-bottom:1px solid #1f2330}
+.topbar h1,.topbar h2{margin:0;font-size:18px}
+.icon{background:transparent;color:var(--text);border:1px solid #293041;border-radius:10px;padding:8px 12px}
+.bottombar{position:sticky;bottom:0;padding:12px 16px;background:linear-gradient(180deg,rgba(15,17,21,0) 0%,rgba(15,17,21,1) 30%)}
+.ghost{display:block;text-align:center;background:transparent;border:1px solid #293041;color:var(--muted);border-radius:12px;padding:10px 14px;text-decoration:none}
 
-.wheel-center{
-  position:absolute; inset:0;
-  display:flex; flex-direction:column; align-items:center; justify-content:center;
+/* Level selector: 2×3 grid */
+.level-grid{
+  display:grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap:12px;
+  padding:16px;
 }
-#status{font-size:14px;opacity:.9;margin-bottom:6px}
-#timer{font-size:48px;font-weight:800;letter-spacing:1px}
-.status.done{ color:#ff5d73; font-weight:700; }
-
-/* Exercise image */
-.exercise-image{display:flex;justify-content:center;margin:12px 0}
-.exercise-image img{
-  max-width:220px; height:auto;
-  border-radius:8px;
-  box-shadow:0 0 12px rgba(0,0,0,.6);
-}
-
-/* Sets + since start */
-.sets-line{
-  display:flex; align-items:center; justify-content:center; gap:18px;
-  margin:6px 0 14px; flex-wrap:wrap;
-}
-.sets{display:flex;gap:10px;align-items:center}
-.tic{width:12px;height:12px;border-radius:50%;background:#333}
-.tic.done{background:#16c060}
-.since{display:flex;gap:8px;align-items:center}
-.since .label{color:var(--muted)}
-
-/* Panel header (expand/collapse) */
-.panel{margin:10px 0 6px;padding:0 12px}
-.panel-toggle{
-  width:100%;
-  display:flex; justify-content:space-between; align-items:center;
-  font-size:16px;
-  background:#111; color:#fff;
-  border:1px solid #1a1a1a;
-  padding:10px 14px;
-  border-radius:10px;
-  cursor:pointer;
-}
-.panel-toggle:active{transform:translateY(1px)}
-.chevron{transition:transform .2s ease}
-
-/* Exercise rows — black background always */
-.rows{display:flex;flex-direction:column;gap:10px;margin:12px 0 8px}
-.row{
-  display:flex;align-items:center;min-height:44px;border-radius:10px;
-  background:#000;
-  color:var(--fg);
-  padding:10px 14px;
-  box-shadow: inset 0 0 0 1px #151515;
-}
-.row .name{font-size:16px;color:#bbb}
-
-/* LED text highlight ONLY for CURRENT */
-.row.current-ex .name{
-  color:var(--led-green);
-  text-shadow:
-    0 0 4px rgba(0,255,136,.6),
-    0 0 10px rgba(0,255,136,.35),
-    0 0 18px rgba(0,255,136,.25);
-  font-weight:700;
-}
-.row.current-br .name{
-  color:var(--led-blue);
-  text-shadow:
-    0 0 4px rgba(61,179,255,.7),
-    0 0 10px rgba(61,179,255,.4),
-    0 0 18px rgba(61,179,255,.3);
-  font-weight:700;
-}
-
-/* Completed rows: neutral */
-.row.completed .name{
-  color:#7f8892;
-  text-shadow:none;
-  font-weight:400;
-}
-
-/* Collapsed state */
-#exercisePanel.collapsed .rows{ display:none; }
-#exercisePanel.collapsed .chevron{ transform:rotate(-90deg); }
-
-/* Symbol controls */
-.controls{
-  display:flex;
-  justify-content:center;
-  gap:20px;
-  margin-top:12px;
-}
-.controls button{
-  font-size:2rem;
-  line-height:1;
-  background:none;
-  border:none;
-  cursor:pointer;
-  padding:10px;
-  border-radius:10px;
-  transition:background .2s;
+.level-card{
+  min-height:100px;
+  border-radius:16px;
+  background:#1a1f29;
   color:#fff;
+  border:1px solid #293041;
+  font-size:28px;
+  font-weight:700;
 }
-.controls button:hover{ background:rgba(255,255,255,0.1) }
-.controls button:active{ transform:translateY(1px) }
-
-.home-wrap{text-align:center;margin-top:10px}
-a.home{display:inline-block;background:#1b1b1b;color:#fff;padding:10px 18px;border-radius:12px;text-decoration:none}
-
-/* Mobile */
-@media (max-width:420px){
-  .wheel-wrap{width:220px;height:220px}
-  #timer{font-size:42px}
-  .row{min-height:40px}
+.level-card:active{transform:scale(0.98)}
+/* (optional) wider screens show 3 columns; remove if you want fixed 2 columns */
+@media (min-width: 560px){
+  .level-grid{ grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
+
+/* Level exercise list */
+.exercise-list{display:flex;flex-direction:column;gap:10px;padding:12px 16px}
+.exercise-row{display:grid;grid-template-columns:64px 1fr auto;gap:12px;align-items:center;background:#141926;border:1px solid #293041;border-radius:12px;padding:8px}
+.exercise-row img{width:64px;height:64px;object-fit:cover;border-radius:8px;background:#0a0d12}
+.exercise-name{font-size:16px}
+.time-adjust{display:flex;align-items:center;gap:8px}
+.time-adjust .pill{min-width:64px;text-align:center;padding:6px 10px;border-radius:999px;background:#0f1420;border:1px solid #293041}
+.time-adjust button{background:#0f1420;color:#fff;border:1px solid #293041;border-radius:10px;width:36px;height:36px;font-size:18px}
+
+/* sticky controls */
+.controls.sticky{position:sticky;bottom:0;background:var(--bg);padding:12px 16px;border-top:1px solid #1f2330}
+.row{display:flex;gap:16px;justify-content:space-between;flex-wrap:wrap;margin-bottom:10px}
+.group label{display:block;color:var(--muted);font-size:12px;margin-bottom:6px}
+.chips{display:flex;gap:8px}
+.chip{background:#0f1420;color:#fff;border:1px solid #293041;border-radius:999px;padding:8px 12px}
+.chip.selected,.primary{background:var(--accent);border-color:var(--accent);color:#061015}
+.primary{display:block;width:100%;padding:12px 16px;border-radius:12px;font-weight:600}
+
+/* workout player */
+.player{display:flex;flex-direction:column;align-items:center;gap:14px;padding:20px}
+.wheel-wrap{position:relative;width:72vw;max-width:360px;aspect-ratio:1/1;display:grid;place-items:center}
+.wheel{position:absolute;width:100%;height:100%}
+.track{fill:none;stroke:var(--track);stroke-width:8}
+.arc{fill:none;stroke:var(--arc);stroke-width:8;transform:rotate(-90deg);transform-origin:50% 50%}
+
+/* image inside wheel */
+.image-hole{position:relative;width:78%;height:78%;border-radius:50%;overflow:hidden;background:#0b0f16;display:grid;place-items:center;border:1px solid #1a2030}
+.image-hole img{width:100%;height:100%;object-fit:contain}
+.prep{position:absolute;inset:0;display:grid;place-items:center;background:rgba(0,0,0,.35);font-size:48px;font-weight:700}
+.prep.hidden{display:none}
+.big-timer{font-size:40px;letter-spacing:1px}
+
+/* bottom workout controls */
+.bottom-controls{position:sticky;bottom:0;display:flex;justify-content:space-around;gap:10px;padding:12px;background:linear-gradient(180deg,rgba(15,17,21,0) 0%,rgba(15,17,21,1) 30%)}
+.control{background:#0f1420;color:#fff;border:1px solid #293041;border-radius:14px;width:96px;height:48px;font-size:18px}
+.control:active{transform:scale(0.98)}
+.progress-label{font-size:12px;color:var(--muted)}
