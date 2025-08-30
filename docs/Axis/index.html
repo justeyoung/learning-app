@@ -41,21 +41,25 @@
       <div class="controls sticky">
         <div class="row">
           <div class="group">
-            <label>Rounds</label>
+            <label>Rounds (Straight Sets)</label>
             <div class="chips" id="rounds-chips">
               <button class="chip selected" data-rounds="1">1</button>
               <button class="chip" data-rounds="2">2</button>
               <button class="chip" data-rounds="3">3</button>
             </div>
           </div>
+
+          <!-- NEW: Break control -->
           <div class="group">
-            <label>Style</label>
-            <div class="chips" id="style-chips">
-              <button class="chip selected" data-style="circuit">Circuit</button>
-              <button class="chip" data-style="straight">Straight Sets</button>
+            <label>Break</label>
+            <div class="time-adjust" id="break-adjust">
+              <button id="break-minus">−</button>
+              <div id="break-pill" class="pill">60s</div>
+              <button id="break-plus">+</button>
             </div>
           </div>
         </div>
+
         <button id="btn-start" class="primary">Start Workout</button>
       </div>
     </section>
