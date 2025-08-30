@@ -26,19 +26,11 @@ body.dark{background:var(--bg);color:var(--text);font-family:system-ui,-apple-sy
   padding:16px;
 }
 .level-card{
-  min-height:100px;
-  border-radius:16px;
-  background:#1a1f29;
-  color:#fff;
-  border:1px solid #293041;
-  font-size:28px;
-  font-weight:700;
+  min-height:100px;border-radius:16px;background:#1a1f29;color:#fff;border:1px solid #293041;
+  font-size:28px;font-weight:700;
 }
 .level-card:active{transform:scale(0.98)}
-/* (optional) wider screens show 3 columns; remove if you want fixed 2 columns */
-@media (min-width: 560px){
-  .level-grid{ grid-template-columns: repeat(3, minmax(0, 1fr)); }
-}
+@media (min-width:560px){ .level-grid{grid-template-columns:repeat(3, minmax(0,1fr));} }
 
 /* Level exercise list */
 .exercise-list{display:flex;flex-direction:column;gap:10px;padding:12px 16px}
