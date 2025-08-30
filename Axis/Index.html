@@ -1,87 +1,76 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>Axis</title>
-  <link rel="stylesheet" href="assets/css/style.css">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Core Exercise Tracker</title>
+  <link rel="stylesheet" href="core.css" />
 </head>
-<body class="dark">
-  <div id="app">
-    <!-- HOME -->
-    <section id="screen-home" class="screen active">
-      <header class="topbar">
-        <h1>Axis</h1>
-      </header>
-      <div class="level-row" aria-label="Select Level">
-        <button class="level-card" data-level="1">L1</button>
-        <button class="level-card" data-level="2">L2</button>
-        <button class="level-card" data-level="3">L3</button>
-        <button class="level-card" data-level="4">L4</button>
-        <button class="level-card" data-level="5">L5</button>
-        <button class="level-card" data-level="6">L6</button>
+<body>
+  <main class="wrap">
+    <h1>Core Exercise Tracker</h1>
+
+    <!-- Timer wheel -->
+    <div class="wheel-wrap">
+      <svg class="wheel" viewBox="0 0 120 120" aria-hidden="true">
+        <circle class="track" cx="60" cy="60" r="54" />
+        <circle id="wheelProgress" class="progress exercise" cx="60" cy="60" r="54" />
+      </svg>
+      <div class="wheel-center">
+        <div id="status">Extended Plank</div>
+        <div id="timer">01:00</div>
       </div>
-      <footer class="bottombar">
-        <button id="btn-dashboard" class="ghost">Dashboard (later)</button>
-      </footer>
+    </div>
+
+    <!-- Exercise image -->
+    <div class="exercise-image">
+      <!-- default can be anything; JS swaps this on exercise start -->
+      <img id="exerciseImage" src="assets/img/elbow_plank.png" alt="Exercise illustration">
+    </div>
+
+    <!-- Sets + since start -->
+    <div class="sets-line">
+      <div class="sets" aria-label="Sets">
+        <span class="tic set-dot" id="tic1"></span>
+        <span class="tic set-dot" id="tic2"></span>
+        <span class="tic set-dot" id="tic3"></span>
+      </div>
+      <div class="since">
+        <span class="label">Since start:</span>
+        <span id="since">00:00</span>
+      </div>
+    </div>
+
+    <!-- Exercises panel (expand/collapse) -->
+    <section id="exercisePanel" class="panel">
+      <button id="exerciseToggle" class="panel-toggle" aria-expanded="true" aria-controls="exerciseList">
+        <span>Exercises</span>
+        <span id="toggleIcon" class="chevron" aria-hidden="true">▾</span>
+      </button>
+
+      <div id="exerciseList" class="rows" aria-label="Exercises">
+        <div class="row" id="row0"><span class="name">Extended Plank</span></div>
+        <div class="row" id="row1"><span class="name">Hollow Hold</span></div>
+        <div class="row" id="row2"><span class="name">Wrist Elbow Crunch</span></div>
+        <div class="row" id="row3"><span class="name">Reverse Crunch</span></div>
+        <div class="row" id="row4"><span class="name">Ab Roller</span></div>
+      </div>
     </section>
 
-    <!-- LEVEL -->
-    <section id="screen-level" class="screen">
-      <header class="topbar">
-        <button id="back-to-home" class="icon">&larr;</button>
-        <h2 id="level-title">Level</h2>
-      </header>
-      <div id="exercise-list" class="exercise-list"></div>
-      <div class="controls sticky">
-        <div class="row">
-          <div class="group">
-            <label>Rounds</label>
-            <div class="chips" id="rounds-chips">
-              <button data-rounds="1" class="chip selected">1</button>
-              <button data-rounds="2" class="chip">2</button>
-              <button data-rounds="3" class="chip">3</button>
-            </div>
-          </div>
-          <div class="group">
-            <label>Style</label>
-            <div class="chips" id="style-chips">
-              <button data-style="circuit" class="chip selected">Circuit</button>
-              <button data-style="straight" class="chip">Straight Sets</button>
-            </div>
-          </div>
-        </div>
-        <button id="btn-start" class="primary">Start Workout</button>
-      </div>
-    </section>
+    <!-- Symbol controls -->
+    <div class="controls">
+      <button id="start"  aria-label="Start">▶️</button>
+      <button id="pause"  aria-label="Pause">⏸️</button>
+      <button id="reset"  aria-label="Reset">🔄</button>
+      <button id="skip"   aria-label="Complete current phase">✔️</button>
+    </div>
 
-    <!-- WORKOUT -->
-    <section id="screen-workout" class="screen">
-      <header class="topbar">
-        <button id="exit-workout" class="icon">&times;</button>
-        <div id="progress-label" class="progress-label">Exercise 1 of 6 • Round 1 of 1</div>
-      </header>
-      <div class="player">
-        <div class="wheel-wrap">
-          <svg id="wheel" viewBox="0 0 120 120" class="wheel" aria-hidden="true">
-            <circle cx="60" cy="60" r="54" class="track"></circle>
-            <circle cx="60" cy="60" r="54" class="arc" stroke-dasharray="339.292" stroke-dashoffset="339.292"></circle>
-          </svg>
-          <div class="image-hole">
-            <img id="exercise-image" alt="Exercise image">
-            <div id="prep-overlay" class="prep hidden">3</div>
-          </div>
-        </div>
-        <div id="exercise-name" class="exercise-name">Exercise</div>
-        <div id="big-timer" class="big-timer">00:60</div>
-      </div>
-      <footer class="controls bottom-controls">
-        <button id="btn-prev" class="control">&larr;</button>
-        <button id="btn-pause" class="control">⏸</button>
-        <button id="btn-next" class="control">&rarr;</button>
-      </footer>
-    </section>
-  </div>
-  <script src="assets/js/app.js"></script>
+    <div class="home-wrap">
+      <a class="home" href="index.html">Home</a>
+    </div>
+  </main>
+
+  <!-- IMPORTANT: your HTML points to app.js -->
+  <script src="app.js"></script>
 </body>
 </html>
