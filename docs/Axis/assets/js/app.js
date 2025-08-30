@@ -1,6 +1,7 @@
-// core.js — milestone6 + per-exercise start voices (5x), 5s beeps,
-// “new_exercise.mp3” warning, celebration at end, skip-autostart,
-// animated wheel + LED rows, 60s exercise & break
+// Axis — interval core tracker:
+// 60s exercise, 60s break, 3 sets each, LED rows, animated wheel,
+// per-exercise start voice, “new_exercise.mp3” in last 5s of 3rd break,
+// celebration at end, skip autostarts next phase, + exercise image switching.
 
 window.addEventListener('DOMContentLoaded', () => {
   // ===== Config =====
@@ -16,23 +17,36 @@ window.addEventListener('DOMContentLoaded', () => {
   ];
   const TOTAL_SETS = 3;
 
+  // Images (adjust names to match your files under assets/img/)
+  const imageFiles = [
+    "assets/img/elbow_plank.png",        // Extended Plank
+    "assets/img/l_sit.png",              // Hollow Hold
+    "assets/img/wrist_elbow_crunch.png", // Wrist Elbow Crunch
+    "assets/img/reverse_crunch.png",     // Reverse Crunch
+    "assets/img/abs_roll_out.png"        // Ab Roller
+  ];
+  const imageEl = document.getElementById("exerciseImage");
+  const showExerciseImage = (idx) => {
+    if (imageEl && imageFiles[idx]) imageEl.src = imageFiles[idx];
+  };
+
   // ===== State =====
   let tickId = null;
-  let left = 0;         // seconds left in current phase
-  let since = 0;        // elapsed seconds since start
-  let exIdx = 0;        // exercise index 0..4
-  let setIdx = 1;       // set index 1..3
-  let inBreak = false;  // phase flag
-  let phaseCuePlayed = false; // guard for “new_exercise.mp3” in last 5s of 3rd break
-  let completed = false;      // session done flag
+  let left = 0;
+  let since = 0;
+  let exIdx = 0;
+  let setIdx = 1;
+  let inBreak = false;
+  let phaseCuePlayed = false;
+  let completed = false;
 
-  // Per-exercise voice files (play once when each exercise starts for the first time)
+  // Per-exercise start voices (play once when each exercise begins first time)
   const startVoiceFiles = [
     "Extended_Plank_Starting.mp3",
     "Hollow_Hold_Starting.mp3",
     "Wrist_To_Elbow_Crunch_Starting.mp3",
     "Reverse_Crunch_Starting.mp3",
-    "Abs_Roll_Out_Starting.mp3" // maps to “Ab Roller”
+    "Abs_Roll_Out_Starting.mp3"
   ];
   const startVoices = startVoiceFiles.map(f => {
     const a = new Audio(f);
@@ -59,18 +73,16 @@ window.addEventListener('DOMContentLoaded', () => {
 
   const rows = [ $('row0'), $('row1'), $('row2'), $('row3'), $('row4') ];
   const tics = [ $('tic1'), $('tic2'), $('tic3') ];
-
   const progEl = $('wheelProgress');
 
-  const startBtn = $('start') || $('startBtn');
-  const pauseBtn = $('pause') || $('pauseBtn');
-  const resetBtn = $('reset') || $('resetBtn');
-  const skipBtn  = $('skip')  || $('completeBtn');
+  const startBtn = $('start');
+  const pauseBtn = $('pause');
+  const resetBtn = $('reset');
+  const skipBtn  = $('skip');
 
   // Expand/collapse panel
   const exercisePanel  = $('exercisePanel');
   const exerciseToggle = $('exerciseToggle');
-  const toggleIcon     = $('toggleIcon');
 
   // ===== Wheel geometry =====
   let C = 0;
@@ -86,7 +98,6 @@ window.addEventListener('DOMContentLoaded', () => {
   const click = new Audio('click.mp3'); click.preload = 'auto'; click.volume = 0.45;
   const playClick = () => { try { click.currentTime = 0; click.play().catch(()=>{});} catch{} };
 
-  // 5s countdown beeps (with WebAudio fallback so it won’t duck Spotify)
   const BEEP_SOURCES = ['beep.mp3', 'countdown_beep.mp3'];
   const beepPool = [];
   for (let i = 0; i < 4; i++) {
@@ -125,17 +136,14 @@ window.addEventListener('DOMContentLoaded', () => {
     } catch { ensureAC(); tone(950, 0.12); }
   }
 
-  // “New exercise coming up” voice (during last 5s of 3rd break)
   const newExerciseSound = new Audio('new_exercise.mp3');
   newExerciseSound.preload = 'auto';
   newExerciseSound.volume = 0.6;
   function playNewExerciseOnce(){ try { newExerciseSound.currentTime = 0; newExerciseSound.play().catch(()=>{}); } catch {} }
 
-  // Final celebration
   const celebration = new Audio('celebration.mp3'); celebration.preload = 'auto'; celebration.volume = 0.7;
   function playCelebration(){ try { celebration.currentTime = 0; celebration.play().catch(()=>{});} catch{} }
 
-  // Prime audio on first user gesture
   let audioPrimed = false;
   function primeAudio(){
     if (audioPrimed) return;
@@ -164,8 +172,8 @@ window.addEventListener('DOMContentLoaded', () => {
     rows.forEach((r,i)=>{
       if (!r) return;
       r.className = 'row';
-      if (i < exIdx) r.classList.add('completed');                     // past → grey
-      if (i === exIdx) r.classList.add(inBreak ? 'current-br' : 'current-ex'); // current → LED
+      if (i < exIdx) r.classList.add('completed');
+      if (i === exIdx) r.classList.add(inBreak ? 'current-br' : 'current-ex');
     });
   }
 
@@ -189,29 +197,23 @@ window.addEventListener('DOMContentLoaded', () => {
   // ===== Phase engine =====
   function advancePhase(){
     if (inBreak){
-      // finished a break
       if (setIdx < TOTAL_SETS){
-        setIdx += 1;        // next set of same exercise
+        setIdx += 1;
         inBreak = false;
         left = EX_TIME;
         return false;
       }
-      // finished 3 sets → next exercise
       setIdx = 1;
       exIdx += 1;
       if (exIdx >= NAMES.length){
-        stop();
-        completed = true;
-        left = 0;
-        playCelebration();  // final cheer
-        return true;
+        stop(); completed = true; left = 0; playCelebration(); return true;
       }
       inBreak = false;
       left = EX_TIME;
-      playStartVoice(exIdx); // announce new exercise (first time only)
+      playStartVoice(exIdx);
+      showExerciseImage(exIdx);
       return false;
     } else {
-      // finished exercise → go to break
       inBreak = true;
       left = BR_TIME;
       return false;
@@ -222,10 +224,8 @@ window.addEventListener('DOMContentLoaded', () => {
     if (completed) return;
     left -= 1; since += 1;
 
-    // 5-second countdown before ANY phase ends
     if (left > 0 && left <= 5) playBeep();
 
-    // During the 3rd break, cue “new exercise coming up” in last 5s (if there is a next exercise)
     if (inBreak && setIdx === TOTAL_SETS && exIdx < NAMES.length - 1 && left > 0 && left <= 5) {
       if (!phaseCuePlayed) { playNewExerciseOnce(); phaseCuePlayed = true; }
     }
@@ -242,8 +242,7 @@ window.addEventListener('DOMContentLoaded', () => {
   function start(){
     if (tickId || completed) return;
     primeAudio(); playClick();
-    // If starting at very beginning (first set of first exercise), play that voice once
-    if (!inBreak && setIdx === 1) playStartVoice(exIdx);
+    if (!inBreak && setIdx === 1) { playStartVoice(exIdx); showExerciseImage(exIdx); }
     tickId = setInterval(tick, 1000);
   }
   function pause(){
@@ -258,7 +257,8 @@ window.addEventListener('DOMContentLoaded', () => {
     primeAudio(); playClick(); stop();
     exIdx = 0; setIdx = 1; inBreak = false; left = EX_TIME; since = 0;
     completed = false; phaseCuePlayed = false;
-    startVoicePlayed = Array(startVoiceFiles.length).fill(false); // allow voices again
+    startVoicePlayed = Array(startVoiceFiles.length).fill(false);
+    showExerciseImage(0);
     draw();
   }
   function skip(){ // complete current phase immediately; autostart next unless finished
@@ -287,14 +287,14 @@ window.addEventListener('DOMContentLoaded', () => {
     exerciseToggle.addEventListener('click', () => {
       const collapsed = exercisePanel.classList.toggle('collapsed');
       exerciseToggle.setAttribute('aria-expanded', String(!collapsed));
-      if (toggleIcon){ /* rotation handled by CSS via .collapsed */ }
     }, { passive:true });
   }
 
   // ===== Init =====
   left = EX_TIME;
   since = 0;
+  showExerciseImage(0);
   draw();
 
-  console.log('[core] milestone6 + per-exercise start voices loaded');
+  console.log('[Axis] loaded');
 });
