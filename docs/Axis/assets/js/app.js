@@ -1,300 +1,217 @@
-// Axis — interval core tracker:
-// 60s exercise, 60s break, 3 sets each, LED rows, animated wheel,
-// per-exercise start voice, “new_exercise.mp3” in last 5s of 3rd break,
-// celebration at end, skip autostarts next phase, + exercise image switching.
+// Axis — full prototype logic
+// Home → Level (2×3 buttons) → Workout
+// Timewheel shows exercise image; beeps last 5s; "next exercise" voice; end sounds.
 
-window.addEventListener('DOMContentLoaded', () => {
-  // ===== Config =====
-  const EX_TIME = 60;  // seconds per exercise
-  const BR_TIME = 60;  // seconds per break
+const $  = (s) => document.querySelector(s);
+const $$ = (s) => Array.from(document.querySelectorAll(s));
 
-  const NAMES = [
-    "Extended Plank",
-    "Hollow Hold",
-    "Wrist Elbow Crunch",
-    "Reverse Crunch",
-    "Ab Roller"
-  ];
-  const TOTAL_SETS = 3;
+let EXERCISES = [];
+let currentLevel = 1;
+let perExerciseSeconds = [60, 60, 60, 60, 60, 60];
+let rounds = 1;
+let style  = 'circuit'; // or 'straight'
 
-  // Images (adjust names to match your files under assets/img/)
-  const imageFiles = [
-    "assets/img/elbow_plank.png",        // Extended Plank
-    "assets/img/l_sit.png",              // Hollow Hold
-    "assets/img/wrist_elbow_crunch.png", // Wrist Elbow Crunch
-    "assets/img/reverse_crunch.png",     // Reverse Crunch
-    "assets/img/abs_roll_out.png"        // Ab Roller
-  ];
-  const imageEl = document.getElementById("exerciseImage");
-  const showExerciseImage = (idx) => {
-    if (imageEl && imageFiles[idx]) imageEl.src = imageFiles[idx];
-  };
+// Load data
+fetch('assets/data/exercises.json')
+  .then(r => r.json())
+  .then(d => { EXERCISES = d; });
 
-  // ===== State =====
-  let tickId = null;
-  let left = 0;
-  let since = 0;
-  let exIdx = 0;
-  let setIdx = 1;
-  let inBreak = false;
-  let phaseCuePlayed = false;
-  let completed = false;
+// ---------- Audio ----------
+const AUDIO = {
+  beep:     new Audio('assets/audio/beep.mp3'),
+  end:      new Audio('assets/audio/workout_complete.mp3'),
+  congrats: new Audio('assets/audio/congratulation.mp3') // only at end
+};
 
-  // Per-exercise start voices (play once when each exercise begins first time)
-  const startVoiceFiles = [
-    "Extended_Plank_Starting.mp3",
-    "Hollow_Hold_Starting.mp3",
-    "Wrist_To_Elbow_Crunch_Starting.mp3",
-    "Reverse_Crunch_Starting.mp3",
-    "Abs_Roll_Out_Starting.mp3"
-  ];
-  const startVoices = startVoiceFiles.map(f => {
-    const a = new Audio(f);
-    a.preload = "auto";
-    a.volume = 0.7;
-    return a;
+function audioKeyFromExercise(ex) {
+  try {
+    const file = ex.img.split('/').pop();              // crunches.png
+    return file.replace(/\.[^.]+$/, '').toLowerCase(); // crunches
+  } catch { return ''; }
+}
+function playBeep(){ try{ AUDIO.beep.currentTime=0; AUDIO.beep.play(); }catch{} }
+function playEnd(){ try{ AUDIO.end.currentTime=0; AUDIO.end.play(); }catch{} }
+function playCongrats(){ try{ AUDIO.congrats.currentTime=0; AUDIO.congrats.play(); }catch{} }
+function playNextVoice(nextEx){
+  if(!nextEx) return;
+  const key = audioKeyFromExercise(nextEx);
+  const src = `assets/audio/next/${key}.mp3`;
+  try { new Audio(src).play(); } catch {}
+}
+function unlockAudio(){ try{ AUDIO.beep.play().then(()=>AUDIO.beep.pause()).catch(()=>{}); }catch{} }
+
+// ---------- Navigation ----------
+function show(id){ $$('.screen').forEach(s=>s.classList.remove('active')); $(id).classList.add('active'); }
+
+$$('.level-card').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    currentLevel = parseInt(btn.dataset.level,10);
+    openLevel(currentLevel);
   });
-  let startVoicePlayed = Array(startVoiceFiles.length).fill(false);
-  function playStartVoice(i){
-    try {
-      if (!startVoicePlayed[i] && startVoices[i]) {
-        startVoices[i].currentTime = 0;
-        startVoices[i].play().catch(()=>{});
-        startVoicePlayed[i] = true;
-      }
-    } catch {}
-  }
-
-  // ===== DOM =====
-  const $ = id => document.getElementById(id);
-  const statusEl = $('status') || $('phase');
-  const timerEl  = $('timer')  || $('time');
-  const sinceEl  = $('since');
-
-  const rows = [ $('row0'), $('row1'), $('row2'), $('row3'), $('row4') ];
-  const tics = [ $('tic1'), $('tic2'), $('tic3') ];
-  const progEl = $('wheelProgress');
-
-  const startBtn = $('start');
-  const pauseBtn = $('pause');
-  const resetBtn = $('reset');
-  const skipBtn  = $('skip');
-
-  // Expand/collapse panel
-  const exercisePanel  = $('exercisePanel');
-  const exerciseToggle = $('exerciseToggle');
-
-  // ===== Wheel geometry =====
-  let C = 0;
-  if (progEl) {
-    const r = parseFloat(progEl.getAttribute('r') || 54);
-    C = 2 * Math.PI * r;
-    progEl.style.strokeDasharray = `${C} ${C}`;
-    progEl.style.strokeDashoffset = `${C}`; // empty start
-    progEl.classList.add('exercise');
-  }
-
-  // ===== Sounds =====
-  const click = new Audio('click.mp3'); click.preload = 'auto'; click.volume = 0.45;
-  const playClick = () => { try { click.currentTime = 0; click.play().catch(()=>{});} catch{} };
-
-  const BEEP_SOURCES = ['beep.mp3', 'countdown_beep.mp3'];
-  const beepPool = [];
-  for (let i = 0; i < 4; i++) {
-    const a = new Audio(BEEP_SOURCES[i % BEEP_SOURCES.length]);
-    a.preload = 'auto'; a.volume = 0.9; beepPool.push(a);
-  }
-  let beepIdx = 0;
-
-  let AC = null;
-  function ensureAC(){ if (!AC) { try { AC = new (window.AudioContext || window.webkitAudioContext)(); } catch {} } }
-  function tone(freq=950, dur=0.12){
-    if (!AC) return;
-    const t = AC.currentTime;
-    const o = AC.createOscillator();
-    const g = AC.createGain();
-    o.type = 'square'; o.frequency.value = freq;
-    g.gain.value = 0.0001;
-    o.connect(g).connect(AC.destination);
-    o.start(t);
-    g.gain.exponentialRampToValueAtTime(0.25, t + 0.01);
-    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-    o.stop(t + dur + 0.02);
-  }
-
-  function playBeep(){
-    const a = beepPool[beepIdx++ % beepPool.length];
-    try {
-      a.currentTime = 0;
-      const p = a.play();
-      if (p && typeof p.then === 'function') {
-        p.then(()=> setTimeout(()=>{ try{ a.pause(); a.currentTime = 0; }catch{} }, 220))
-         .catch(()=> { ensureAC(); tone(950, 0.12); });
-      } else {
-        setTimeout(()=>{ try{ a.pause(); a.currentTime = 0; }catch{} }, 220);
-      }
-    } catch { ensureAC(); tone(950, 0.12); }
-  }
-
-  const newExerciseSound = new Audio('new_exercise.mp3');
-  newExerciseSound.preload = 'auto';
-  newExerciseSound.volume = 0.6;
-  function playNewExerciseOnce(){ try { newExerciseSound.currentTime = 0; newExerciseSound.play().catch(()=>{}); } catch {} }
-
-  const celebration = new Audio('celebration.mp3'); celebration.preload = 'auto'; celebration.volume = 0.7;
-  function playCelebration(){ try { celebration.currentTime = 0; celebration.play().catch(()=>{});} catch{} }
-
-  let audioPrimed = false;
-  function primeAudio(){
-    if (audioPrimed) return;
-    audioPrimed = true;
-    ensureAC();
-    if (AC && AC.state === 'suspended') { AC.resume().catch(()=>{}); }
-    [...beepPool, click, celebration, newExerciseSound, ...startVoices].forEach(a=>{
-      const old = a.volume; a.volume = 0.01;
-      a.play().then(()=>{ a.pause(); a.currentTime = 0; a.volume = old; }).catch(()=>{ a.volume = old; });
-    });
-  }
-
-  // ===== UI helpers =====
-  const fmt = s => `${String(Math.floor(s/60)).padStart(2,"0")}:${String(s%60).padStart(2,"0")}`;
-
-  function updateWheel(){
-    if (!progEl) return;
-    const total = inBreak ? BR_TIME : EX_TIME;
-    const ratio = Math.max(0, Math.min(1, 1 - (left / total))); // fill 0→1
-    progEl.style.strokeDashoffset = String(C * (1 - ratio));
-    progEl.classList.toggle('break', inBreak);
-    progEl.classList.toggle('exercise', !inBreak);
-  }
-
-  function paintRows(){
-    rows.forEach((r,i)=>{
-      if (!r) return;
-      r.className = 'row';
-      if (i < exIdx) r.classList.add('completed');
-      if (i === exIdx) r.classList.add(inBreak ? 'current-br' : 'current-ex');
-    });
-  }
-
-  function paintTics(){
-    const done = inBreak ? setIdx : (setIdx - 1);
-    tics.forEach((t,i)=> t && t.classList.toggle('done', i < done));
-  }
-
-  function draw(){
-    if (completed){
-      if (statusEl){ statusEl.textContent = "Exercise completed."; statusEl.className = "status done"; }
-      if (timerEl){ timerEl.textContent = "00:00"; }
-      updateWheel(); paintRows(); paintTics(); return;
-    }
-    if (statusEl) statusEl.textContent = inBreak ? "Break" : NAMES[exIdx];
-    if (timerEl)  timerEl.textContent  = fmt(left);
-    if (sinceEl)  sinceEl.textContent  = fmt(since);
-    updateWheel(); paintRows(); paintTics();
-  }
-
-  // ===== Phase engine =====
-  function advancePhase(){
-    if (inBreak){
-      if (setIdx < TOTAL_SETS){
-        setIdx += 1;
-        inBreak = false;
-        left = EX_TIME;
-        return false;
-      }
-      setIdx = 1;
-      exIdx += 1;
-      if (exIdx >= NAMES.length){
-        stop(); completed = true; left = 0; playCelebration(); return true;
-      }
-      inBreak = false;
-      left = EX_TIME;
-      playStartVoice(exIdx);
-      showExerciseImage(exIdx);
-      return false;
-    } else {
-      inBreak = true;
-      left = BR_TIME;
-      return false;
-    }
-  }
-
-  function tick(){
-    if (completed) return;
-    left -= 1; since += 1;
-
-    if (left > 0 && left <= 5) playBeep();
-
-    if (inBreak && setIdx === TOTAL_SETS && exIdx < NAMES.length - 1 && left > 0 && left <= 5) {
-      if (!phaseCuePlayed) { playNewExerciseOnce(); phaseCuePlayed = true; }
-    }
-
-    if (left <= 0){
-      const done = advancePhase();
-      phaseCuePlayed = false;
-      if (done){ draw(); return; }
-    }
-    draw();
-  }
-
-  // ===== Controls =====
-  function start(){
-    if (tickId || completed) return;
-    primeAudio(); playClick();
-    if (!inBreak && setIdx === 1) { playStartVoice(exIdx); showExerciseImage(exIdx); }
-    tickId = setInterval(tick, 1000);
-  }
-  function pause(){
-    if (!tickId) return;
-    primeAudio(); playClick();
-    clearInterval(tickId); tickId = null;
-  }
-  function stop(){
-    if (tickId){ clearInterval(tickId); tickId = null; }
-  }
-  function reset(){
-    primeAudio(); playClick(); stop();
-    exIdx = 0; setIdx = 1; inBreak = false; left = EX_TIME; since = 0;
-    completed = false; phaseCuePlayed = false;
-    startVoicePlayed = Array(startVoiceFiles.length).fill(false);
-    showExerciseImage(0);
-    draw();
-  }
-  function skip(){ // complete current phase immediately; autostart next unless finished
-    if (completed) return;
-    primeAudio(); playClick(); stop();
-    left = 0;
-    const done = advancePhase();
-    phaseCuePlayed = false; draw();
-    if (!done && !tickId) tickId = setInterval(tick, 1000);
-  }
-
-  // Safe bind (replace node to avoid duplicate handlers)
-  function bind(el, handler){
-    if (!el) return;
-    const clone = el.cloneNode(true);
-    el.parentNode.replaceChild(clone, el);
-    clone.addEventListener('click', handler, { passive:true });
-  }
-  bind(startBtn, start);
-  bind(pauseBtn, pause);
-  bind(resetBtn, reset);
-  bind(skipBtn,  skip);
-
-  // Expand/collapse exercises
-  if (exerciseToggle && exercisePanel){
-    exerciseToggle.addEventListener('click', () => {
-      const collapsed = exercisePanel.classList.toggle('collapsed');
-      exerciseToggle.setAttribute('aria-expanded', String(!collapsed));
-    }, { passive:true });
-  }
-
-  // ===== Init =====
-  left = EX_TIME;
-  since = 0;
-  showExerciseImage(0);
-  draw();
-
-  console.log('[Axis] loaded');
 });
+
+$('#back-to-home').addEventListener('click', ()=> show('#screen-home'));
+
+// ---------- Level screen ----------
+function openLevel(level){
+  $('#level-title').textContent = `Level ${level}`;
+  const rows = EXERCISES.filter(e=>e.level===level);
+  perExerciseSeconds = rows.map(()=>60);
+
+  const list = $('#exercise-list'); list.innerHTML='';
+  rows.forEach((ex,i)=>{
+    const row = document.createElement('div'); row.className='exercise-row';
+    const img = document.createElement('img'); img.src=ex.img; img.alt=ex.name; img.onerror=()=>img.src='assets/img/ui/placeholder.png';
+    const name = document.createElement('div'); name.className='exercise-name'; name.textContent=ex.name;
+    const adjust = document.createElement('div'); adjust.className='time-adjust';
+    const minus=document.createElement('button'); minus.textContent='−';
+    const pill=document.createElement('div'); pill.className='pill'; pill.textContent=`${perExerciseSeconds[i]}s`;
+    const plus=document.createElement('button'); plus.textContent='+';
+    minus.addEventListener('click',()=>{ perExerciseSeconds[i]=Math.max(15,perExerciseSeconds[i]-15); pill.textContent=`${perExerciseSeconds[i]}s`; });
+    plus.addEventListener('click',()=>{ perExerciseSeconds[i]=Math.min(120,perExerciseSeconds[i]+15); pill.textContent=`${perExerciseSeconds[i]}s`; });
+    adjust.append(minus,pill,plus);
+    row.append(img,name,adjust); list.append(row);
+  });
+
+  // restore chips
+  $$('#rounds-chips .chip').forEach(c=>c.classList.remove('selected'));
+  $(`#rounds-chips .chip[data-rounds="${rounds}"]`).classList.add('selected');
+  $$('#style-chips .chip').forEach(c=>c.classList.remove('selected'));
+  $(`#style-chips .chip[data-style="${style}"]`).classList.add('selected');
+
+  show('#screen-level');
+}
+
+$('#rounds-chips').addEventListener('click', e=>{
+  const btn = e.target.closest('.chip'); if(!btn) return;
+  $$('#rounds-chips .chip').forEach(c=>c.classList.remove('selected'));
+  btn.classList.add('selected'); rounds=parseInt(btn.dataset.rounds,10);
+});
+$('#style-chips').addEventListener('click', e=>{
+  const btn = e.target.closest('.chip'); if(!btn) return;
+  $$('#style-chips .chip').forEach(c=>c.classList.remove('selected'));
+  btn.classList.add('selected'); style=btn.dataset.style;
+});
+
+$('#btn-start').addEventListener('click', ()=>{ unlockAudio(); startWorkout(); });
+
+// ---------- Workout engine ----------
+const player = { levelRows:[], roundIdx:0, exIdx:0, mode:'prep', duration:0, remaining:0, paused:false, raf:null, startTs:0 };
+
+function startWorkout(){
+  player.levelRows = EXERCISES.filter(e=>e.level===currentLevel);
+  player.roundIdx=0; player.exIdx=0; player.paused=false;
+  show('#screen-workout'); startPrep(3);
+}
+
+function setProgressLabel(){ $('#progress-label').textContent = `Exercise ${player.exIdx+1} of 6 • Round ${player.roundIdx+1} of ${rounds}`; }
+function setExerciseVisual(){
+  const ex = player.levelRows[player.exIdx];
+  $('#exercise-name').textContent = ex.name;
+  const img = $('#exercise-image'); img.src=ex.img; img.alt=ex.name; img.onerror=()=>img.src='assets/img/ui/placeholder.png';
+}
+
+function animateWheel(progress){
+  const C = 339.292; $('#wheel .arc').style.strokeDashoffset = String(C*(1-progress));
+}
+
+function startPrep(sec){
+  player.mode='prep'; player.duration=sec; player.remaining=sec;
+  setExerciseVisual(); setProgressLabel();
+  $('#prep-overlay').classList.remove('hidden'); $('#prep-overlay').textContent=String(sec);
+  const d = perExerciseSeconds[player.exIdx]; $('#big-timer').textContent=`00:${String(d).padStart(2,'0')}`;
+  animateWheel(0); tickLoop();
+}
+function startRun(){
+  player.mode='run'; const d=perExerciseSeconds[player.exIdx]; player.duration=d; player.remaining=d;
+  $('#prep-overlay').classList.add('hidden'); tickLoop();
+}
+
+function tickLoop(){
+  player.startTs = performance.now();
+  let nextSpoken=false;
+
+  const frame=()=>{
+    if(player.paused){ player.raf=requestAnimationFrame(frame); return; }
+
+    const elapsed=(performance.now()-player.startTs)/1000;
+    const rem=Math.max(0, player.duration - Math.floor(elapsed));
+
+    if(rem!==player.remaining){
+      player.remaining=rem;
+
+      if(player.mode==='prep'){
+        $('#prep-overlay').textContent=String(rem);
+        if(rem===0) startRun();
+      }else{
+        $('#big-timer').textContent=`00:${String(rem).padStart(2,'0')}`;
+        animateWheel((player.duration-rem)/player.duration);
+
+        if(rem<=5 && rem>0){ $('.image-hole').style.outline='2px solid var(--accent)'; playBeep(); }
+        else { $('.image-hole').style.outline='1px solid #1a2030'; }
+
+        if(!nextSpoken && rem===2){
+          nextSpoken=true;
+          let nextEx=null;
+          const lastInStraight = (style==='straight' && player.exIdx===5 && player.roundIdx===rounds-1);
+          if(!lastInStraight){
+            if(style==='circuit'){
+              if(player.exIdx<5) nextEx=player.levelRows[player.exIdx+1];
+              else if(player.roundIdx<rounds-1) nextEx=player.levelRows[0];
+            }else{
+              if(player.roundIdx<rounds-1) nextEx=player.levelRows[player.exIdx];
+              else if(player.exIdx<5) nextEx=player.levelRows[player.exIdx+1];
+            }
+          }
+          playNextVoice(nextEx);
+        }
+
+        if(rem===0){ goNext(); return; }
+      }
+    }
+
+    player.raf=requestAnimationFrame(frame);
+  };
+  player.raf=requestAnimationFrame(frame);
+}
+
+function goNext(){
+  if(style==='circuit'){
+    if(player.exIdx<5){ player.exIdx+=1; }
+    else{
+      if(player.roundIdx<rounds-1){ player.roundIdx+=1; player.exIdx=0; }
+      else { finishWorkout(); return; }
+    }
+  }else{ // straight
+    if(player.roundIdx<rounds-1){ player.roundIdx+=1; }
+    else { player.roundIdx=0; if(player.exIdx<5){ player.exIdx+=1; } else { finishWorkout(); return; } }
+  }
+  startPrep(3);
+}
+
+function goPrev(){
+  if(style==='circuit'){
+    if(player.exIdx>0){ player.exIdx-=1; }
+    else if(player.roundIdx>0){ player.roundIdx-=1; player.exIdx=5; }
+    else return;
+  }else{
+    if(player.roundIdx>0){ player.roundIdx-=1; }
+    else if(player.exIdx>0){ player.exIdx-=1; player.roundIdx=rounds-1; }
+    else return;
+  }
+  startPrep(3);
+}
+
+function finishWorkout(){
+  playEnd();      // workout_complete.mp3
+  playCongrats(); // congratulation.mp3
+  show('#screen-home');
+}
+
+$('#btn-prev').addEventListener('click', goPrev);
+$('#btn-next').addEventListener('click', goNext);
+$('#btn-pause').addEventListener('click', ()=>{
+  player.paused=!player.paused;
+  $('#btn-pause').textContent = player.paused ? '▶' : '⏸';
+});
+$('#exit-workout').addEventListener('click', ()=> show('#screen-home'));
