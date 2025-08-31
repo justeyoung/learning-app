@@ -60,6 +60,9 @@ body.dark{background:var(--bg);color:var(--text);font-family:system-ui,-apple-sy
 /* image inside wheel */
 .image-hole{position:relative;width:78%;height:78%;border-radius:50%;overflow:hidden;background:#0b0f16;display:grid;place-items:center;border:1px solid #1a2030}
 .image-hole img{width:100%;height:100%;object-fit:contain}
+.image-hole.resting{background:#0f1420}
+
+/* overlays & text */
 .prep{position:absolute;inset:0;display:grid;place-items:center;background:rgba(0,0,0,.35);font-size:48px;font-weight:700}
 .prep.hidden{display:none}
 .big-timer{font-size:40px;letter-spacing:1px}
