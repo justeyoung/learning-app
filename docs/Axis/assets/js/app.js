@@ -1,38 +1,49 @@
-// Axis — Straight Sets only + adjustable Break between work sets.
-// Beeps last 5s of both WORK and BREAK. "Next exercise" voice remains.
+// Axis — Straight Sets + Breaks + Voice Announcements + Preload names
+// Defaults: each exercise 10s, break 60s. Beeps last 5s of work/rest.
+// Start-of-set: announce exercise name. ~2s before end: "Next ..." cue.
 
 const $  = (s) => document.querySelector(s);
 const $$ = (s) => Array.from(document.querySelectorAll(s));
 
 let EXERCISES = [];
 let currentLevel = 1;
-let perExerciseSeconds = [60,60,60,60,60,60];
+let perExerciseSeconds = [10,10,10,10,10,10]; // default 10s each (editable per exercise)
 let rounds = 1;
-let breakSeconds = 60;     // NEW: configurable break
-const STYLE = 'straight';  // fixed
+let breakSeconds = 60;                         // default break
 
-// Load data
+// -------- Data --------
 fetch('assets/data/exercises.json')
   .then(r => r.json())
   .then(d => { EXERCISES = d; });
 
-// ---------- Audio ----------
-const AUDIO = {
-  beep:     new Audio('assets/audio/beep.mp3'),
-  end:      new Audio('assets/audio/workout_complete.mp3'),
-  congrats: new Audio('assets/audio/congratulation.mp3')
-};
-function playBeep(){ try{ AUDIO.beep.currentTime=0; AUDIO.beep.play(); }catch{} }
-function playEnd(){ try{ AUDIO.end.currentTime=0; AUDIO.end.play(); }catch{} }
-function playCongrats(){ try{ AUDIO.congrats.currentTime=0; AUDIO.congrats.play(); }catch{} }
+// -------- Audio helpers --------
+// support both new layout (system/names/cues) and old (root/next) for safety
+function playOnce(paths){
+  for (const p of paths) {
+    try { const a = new Audio(p); a.play(); return; } catch {}
+  }
+}
+function playBeep(){ playOnce(['assets/audio/system/beep.mp3','assets/audio/beep.mp3']); }
+function playEnd(){ playOnce(['assets/audio/system/workout_complete.mp3','assets/audio/workout_complete.mp3']); }
+function playCongrats(){ playOnce(['assets/audio/system/congratulation.mp3','assets/audio/congratulation.mp3']); }
 
-// “Next exercise” voice
-function audioKeyFromExercise(ex){ try{ return ex.img.split('/').pop().replace(/\.[^.]+$/,'').toLowerCase(); } catch { return ''; } }
-function playNextVoice(nextEx){ if(!nextEx) return; const k=audioKeyFromExercise(nextEx); try{ new Audio(`assets/audio/next/${k}.mp3`).play(); }catch{} }
-// iOS unlock
-function unlockAudio(){ try{ AUDIO.beep.play().then(()=>AUDIO.beep.pause()).catch(()=>{}); }catch{} }
+function audioKeyFromExercise(ex){
+  try { return ex.img.split('/').pop().replace(/\.[^.]+$/,'').toLowerCase(); } catch { return ''; }
+}
+function playExerciseName(ex){
+  if (!ex) return;
+  const k = audioKeyFromExercise(ex);
+  playOnce([`assets/audio/names/${k}.mp3`]);
+}
+function playNextVoice(ex){
+  if (!ex) return;
+  const k = audioKeyFromExercise(ex);
+  playOnce([`assets/audio/cues/${k}.mp3`, `assets/audio/next/${k}.mp3`]);
+}
+// iOS requires a user gesture before audio; ping a beep on Start.
+function unlockAudio(){ playBeep(); }
 
-// ---------- Navigation ----------
+// -------- Navigation scaffolding --------
 function show(id){ $$('.screen').forEach(s=>s.classList.remove('active')); $(id).classList.add('active'); }
 
 $$('.level-card').forEach(btn=>{
@@ -44,35 +55,53 @@ $$('.level-card').forEach(btn=>{
 
 $('#back-to-home').addEventListener('click', ()=> show('#screen-home'));
 
-// ---------- Level screen ----------
+// -------- Level screen (with PRELOAD of names) --------
 function openLevel(level){
   $('#level-title').textContent = `Level ${level}`;
   const rows = EXERCISES.filter(e=>e.level===level);
-  perExerciseSeconds = rows.map(()=>60);
+  perExerciseSeconds = rows.map(()=>10); // default 10s shown on the list
+
+  // PRELOAD: exercise-name audio for this level (Option 5)
+  rows.forEach(ex => {
+    const k = audioKeyFromExercise(ex);
+    try {
+      const a = new Audio(`assets/audio/names/${k}.mp3`);
+      a.preload = 'auto';
+    } catch {}
+  });
 
   const list = $('#exercise-list'); list.innerHTML='';
   rows.forEach((ex,i)=>{
     const row = document.createElement('div'); row.className='exercise-row';
     const img = document.createElement('img'); img.src=ex.img; img.alt=ex.name; img.onerror=()=>img.src='assets/img/ui/placeholder.png';
     const name = document.createElement('div'); name.className='exercise-name'; name.textContent=ex.name;
+
     const adjust = document.createElement('div'); adjust.className='time-adjust';
     const minus=document.createElement('button'); minus.textContent='−';
     const pill=document.createElement('div'); pill.className='pill'; pill.textContent=`${perExerciseSeconds[i]}s`;
     const plus=document.createElement('button'); plus.textContent='+';
-    minus.addEventListener('click',()=>{ perExerciseSeconds[i]=Math.max(15,perExerciseSeconds[i]-15); pill.textContent=`${perExerciseSeconds[i]}s`; });
-    plus.addEventListener('click',()=>{ perExerciseSeconds[i]=Math.min(120,perExerciseSeconds[i]+15); pill.textContent=`${perExerciseSeconds[i]}s`; });
+
+    minus.addEventListener('click',()=>{
+      perExerciseSeconds[i]=Math.max(5,perExerciseSeconds[i]-15);
+      pill.textContent = `${perExerciseSeconds[i]}s`;
+    });
+    plus.addEventListener('click',()=>{
+      perExerciseSeconds[i]=Math.min(180,perExerciseSeconds[i]+15);
+      pill.textContent = `${perExerciseSeconds[i]}s`;
+    });
+
     adjust.append(minus,pill,plus);
     row.append(img,name,adjust); list.append(row);
   });
 
-  // rounds chips
+  // Rounds (straight sets only)
   $$('#rounds-chips .chip').forEach(c=>c.classList.remove('selected'));
-  $(`#rounds-chips .chip[data-rounds="${rounds}"]`).classList.add('selected');
+  $(`#rounds-chips .chip[data-rounds="${rounds}"]`)?.classList.add('selected');
 
-  // break control
+  // Break control
   $('#break-pill').textContent = `${breakSeconds}s`;
   $('#break-minus').onclick = ()=>{ breakSeconds=Math.max(0, breakSeconds-15); $('#break-pill').textContent=`${breakSeconds}s`; };
-  $('#break-plus').onclick  = ()=>{ breakSeconds=Math.min(180, breakSeconds+15); $('#break-pill').textContent=`${breakSeconds}s`; };
+  $('#break-plus').onclick  = ()=>{ breakSeconds=Math.min(600, breakSeconds+15); $('#break-pill').textContent=`${breakSeconds}s`; };
 
   show('#screen-level');
 }
@@ -85,12 +114,12 @@ $('#rounds-chips').addEventListener('click', e=>{
 
 $('#btn-start').addEventListener('click', ()=>{ unlockAudio(); startWorkout(); });
 
-// ---------- Workout engine ----------
+// -------- Workout engine (Straight Sets + Break between work sets) --------
 const player = {
   levelRows:[], roundIdx:0, exIdx:0,
   mode:'prep',                // 'prep' | 'run' | 'rest'
   duration:0, remaining:0, paused:false, raf:null, startTs:0,
-  nextAfterRest:null          // function to call after rest finishes
+  nextAfterRest:null
 };
 
 function startWorkout(){
@@ -105,19 +134,30 @@ function setExerciseVisual(){
   $('#exercise-name').textContent = ex.name;
   const img = $('#exercise-image'); img.src=ex.img; img.alt=ex.name; img.onerror=()=>{ console.warn('Image not found:', ex.img); img.src='assets/img/ui/placeholder.png'; };
 }
-function animateWheel(progress){ const C=339.292; $('#wheel .arc').style.strokeDashoffset = String(C*(1-progress)); }
+function animateWheel(progress){
+  const C=339.292; $('#wheel .arc').style.strokeDashoffset = String(C*(1-progress));
+}
 
 function startPrep(sec){
   player.mode='prep'; player.duration=sec; player.remaining=sec;
   setExerciseVisual(); setProgressLabel();
   $('#prep-overlay').classList.remove('hidden'); $('#prep-overlay').textContent=String(sec);
-  const d=perExerciseSeconds[player.exIdx]; $('#big-timer').textContent=`00:${String(d).padStart(2,'0')}`;
+  const d = perExerciseSeconds[player.exIdx]; $('#big-timer').textContent=`00:${String(d).padStart(2,'0')}`;
   animateWheel(0); tickLoop();
 }
+
 function startRun(){
-  player.mode='run'; const d=perExerciseSeconds[player.exIdx]; player.duration=d; player.remaining=d;
-  $('#prep-overlay').classList.add('hidden'); tickLoop();
+  player.mode='run';
+  const d=perExerciseSeconds[player.exIdx];
+  player.duration=d; player.remaining=d;
+  $('#prep-overlay').classList.add('hidden');
+
+  // Announce the exercise name at the start of the set
+  playExerciseName(player.levelRows[player.exIdx]);
+
+  tickLoop();
 }
+
 function startRest(){
   if(breakSeconds<=0){ player.nextAfterRest?.(); return; }
   player.mode='rest'; player.duration=breakSeconds; player.remaining=breakSeconds;
@@ -152,17 +192,17 @@ function tickLoop(){
         if(rem<=5 && rem>0){ $('.image-hole').style.outline='2px solid var(--accent)'; playBeep(); }
         else { $('.image-hole').style.outline='1px solid #1a2030'; }
 
-        // Next voice ~2s before end (straight sets)
+        // Speak "Next ..." ~2s before end (straight sets)
         if(!nextSpoken && rem===2){
           nextSpoken=true;
           let nextEx=null;
-          if(player.roundIdx < rounds-1) nextEx = player.levelRows[player.exIdx];           // same exercise next set
-          else if(player.exIdx < 5)      nextEx = player.levelRows[player.exIdx+1];        // next exercise
+          if(player.roundIdx < rounds-1) nextEx = player.levelRows[player.exIdx];     // same exercise next set
+          else if(player.exIdx < 5)      nextEx = player.levelRows[player.exIdx+1];  // next exercise
           playNextVoice(nextEx);
         }
 
         if(rem===0){
-          // decide what's next and insert REST before it
+          // After work finishes, go to REST, then continue
           player.nextAfterRest = ()=>{
             if(player.roundIdx < rounds-1){ player.roundIdx+=1; startPrep(3); }
             else if(player.exIdx < 5){ player.roundIdx=0; player.exIdx+=1; startPrep(3); }
@@ -185,16 +225,15 @@ function tickLoop(){
   player.raf=requestAnimationFrame(frame);
 }
 
+// Prev/Next jump between work sets (ignores rest)
 function goPrev(){
-  // Straight sets: step back to previous work segment; rest will trigger as normal afterwards
-  if(player.mode==='rest'){ player.mode='run'; } // ignore prev during rest
+  if(player.mode==='rest'){ player.mode='run'; } // ignore prev while resting
   if(player.roundIdx>0){ player.roundIdx-=1; }
   else if(player.exIdx>0){ player.exIdx-=1; player.roundIdx=rounds-1; }
   else return;
   startPrep(3);
 }
 function goNext(){
-  // Skip to next work segment, ignoring current
   if(player.roundIdx < rounds-1){ player.roundIdx+=1; }
   else if(player.exIdx < 5){ player.roundIdx=0; player.exIdx+=1; }
   else { finishWorkout(); return; }
@@ -207,6 +246,7 @@ function finishWorkout(){
   show('#screen-home');
 }
 
+// Controls
 $('#btn-prev').addEventListener('click', goPrev);
 $('#btn-next').addEventListener('click', goNext);
 $('#btn-pause').addEventListener('click', ()=>{
