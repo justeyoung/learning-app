@@ -1,6 +1,7 @@
-// Axis — Straight Sets + Breaks + Voice Announcements + Preload names
+// Axis — Straight Sets + Breaks + Voice Announcements + Preload names + Rest image
 // Defaults: each exercise 10s, break 60s. Beeps last 5s of work/rest.
 // Start-of-set: announce exercise name. ~2s before end: "Next ..." cue.
+// Uses assets/img/ui/rest.png during breaks.
 
 const $  = (s) => document.querySelector(s);
 const $$ = (s) => Array.from(document.querySelectorAll(s));
@@ -17,7 +18,7 @@ fetch('assets/data/exercises.json')
   .then(d => { EXERCISES = d; });
 
 // -------- Audio helpers --------
-// support both new layout (system/names/cues) and old (root/next) for safety
+// Support both new layout (system/names/cues) and old (root/next) for safety
 function playOnce(paths){
   for (const p of paths) {
     try { const a = new Audio(p); a.play(); return; } catch {}
@@ -61,7 +62,7 @@ function openLevel(level){
   const rows = EXERCISES.filter(e=>e.level===level);
   perExerciseSeconds = rows.map(()=>10); // default 10s shown on the list
 
-  // PRELOAD: exercise-name audio for this level (Option 5)
+  // PRELOAD: exercise-name audio for this level
   rows.forEach(ex => {
     const k = audioKeyFromExercise(ex);
     try {
@@ -133,6 +134,7 @@ function setExerciseVisual(){
   const ex = player.levelRows[player.exIdx];
   $('#exercise-name').textContent = ex.name;
   const img = $('#exercise-image'); img.src=ex.img; img.alt=ex.name; img.onerror=()=>{ console.warn('Image not found:', ex.img); img.src='assets/img/ui/placeholder.png'; };
+  $('.image-hole').classList.remove('resting');
 }
 function animateWheel(progress){
   const C=339.292; $('#wheel .arc').style.strokeDashoffset = String(C*(1-progress));
@@ -162,7 +164,10 @@ function startRest(){
   if(breakSeconds<=0){ player.nextAfterRest?.(); return; }
   player.mode='rest'; player.duration=breakSeconds; player.remaining=breakSeconds;
   $('#exercise-name').textContent='Rest';
-  $('#exercise-image').src='assets/img/ui/placeholder.png';
+  const img = $('#exercise-image');
+  img.src='assets/img/ui/rest.png';
+  img.alt='Rest';
+  $('.image-hole').classList.add('resting');
   $('#big-timer').textContent = `00:${String(breakSeconds).padStart(2,'0')}`;
   animateWheel(0);
   tickLoop();
