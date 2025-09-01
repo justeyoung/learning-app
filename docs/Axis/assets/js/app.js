@@ -1,6 +1,5 @@
-// Axis — Straight Sets ONLY (no rounds clicking) + Breaks + WebAudio beeps
-// Flow: Level -> Start -> 3s prep -> announce -> last-5s beeps -> Rest -> next set
-// After 3rd set of an exercise, move to the next exercise automatically.
+// Axis — Straight Sets ONLY (fixed rounds=3) + Breaks + WebAudio beeps
+// Defaults updated: 45s per exercise, 40s break, ±5 buttons.
 
 const $  = (s) => document.querySelector(s);
 const $$ = (s) => Array.from(document.querySelectorAll(s));
@@ -8,14 +7,13 @@ const $$ = (s) => Array.from(document.querySelectorAll(s));
 let EXERCISES = [];
 let currentLevel = 1;
 
-// ---- Defaults (no user clicking for rounds) ----
+// ---- Defaults ----
 const ROUNDS = 3;                // fixed straight sets
-let breakSeconds = 60;           // adjustable in Level screen
+let breakSeconds = 40;           // default break
 const prepSeconds = 3;
-let perExerciseSeconds = [10,10,10,10,10,10]; // editable per exercise
+let perExerciseSeconds = [45,45,45,45,45,45]; // editable per exercise
 
-// Sounds: WebAudio beeps won't pause Spotify.
-// Voice announcements may duck external audio; set to false to disable.
+// Sounds
 let beepsEnabled  = true;
 let voiceEnabled  = true;
 
@@ -24,7 +22,7 @@ fetch('assets/data/exercises.json')
   .then(r => r.json())
   .then(d => { EXERCISES = d; });
 
-// ---- WebAudio beeps (Spotify-safe) ----
+// ---- WebAudio beeps ----
 let audioCtx = null;
 function ensureAudioCtx(){
   if (!audioCtx) {
@@ -46,7 +44,7 @@ function beep(freq=1000, ms=150, gain=0.12){
   osc.start(now); osc.stop(now + ms/1000 + 0.02);
 }
 
-// ---- Voice announcements (optional) ----
+// ---- Voice announcements ----
 function keyFromImgPath(p){ try{ return p.split('/').pop().replace(/\.[^.]+$/,'').toLowerCase(); }catch{ return ''; } }
 function playExerciseName(ex){
   if (!voiceEnabled || !ex) return;
@@ -65,13 +63,12 @@ $$('.level-card').forEach(btn=>{
 });
 $('#back-to-home').addEventListener('click', ()=> show('#screen-home'));
 
-// ---- Level screen (no rounds UI; just times + break) ----
+// ---- Level screen ----
 function openLevel(level){
   $('#level-title').textContent = `Level ${level}`;
   const rows = EXERCISES.filter(e=>e.level===level);
-  perExerciseSeconds = rows.map(()=>10);
+  perExerciseSeconds = rows.map(()=>45); // default 45s each
 
-  // (Optional) preload names
   if (voiceEnabled){
     rows.forEach(ex=>{ try{
       const a = new Audio(`assets/audio/names/${keyFromImgPath(ex.img)}.mp3`);
@@ -90,8 +87,8 @@ function openLevel(level){
     const pill =document.createElement('div'); pill.className='pill'; pill.textContent=`${perExerciseSeconds[i]}s`;
     const plus =document.createElement('button'); plus.textContent='+';
 
-    minus.onclick=()=>{ perExerciseSeconds[i]=Math.max(5,perExerciseSeconds[i]-15); pill.textContent=`${perExerciseSeconds[i]}s`; };
-    plus.onclick =()=>{ perExerciseSeconds[i]=Math.min(180,perExerciseSeconds[i]+15); pill.textContent=`${perExerciseSeconds[i]}s`; };
+    minus.onclick=()=>{ perExerciseSeconds[i]=Math.max(5,perExerciseSeconds[i]-5); pill.textContent=`${perExerciseSeconds[i]}s`; };
+    plus.onclick =()=>{ perExerciseSeconds[i]=Math.min(600,perExerciseSeconds[i]+5); pill.textContent=`${perExerciseSeconds[i]}s`; };
 
     adjust.append(minus,pill,plus);
     row.append(img,name,adjust); list.append(row);
@@ -99,15 +96,15 @@ function openLevel(level){
 
   // Break control only
   $('#break-pill').textContent = `${breakSeconds}s`;
-  $('#break-minus').onclick = ()=>{ breakSeconds=Math.max(0, breakSeconds-15);  $('#break-pill').textContent=`${breakSeconds}s`; };
-  $('#break-plus').onclick  = ()=>{ breakSeconds=Math.min(600, breakSeconds+15); $('#break-pill').textContent=`${breakSeconds}s`; };
+  $('#break-minus').onclick = ()=>{ breakSeconds=Math.max(0, breakSeconds-5);  $('#break-pill').textContent=`${breakSeconds}s`; };
+  $('#break-plus').onclick  = ()=>{ breakSeconds=Math.min(600, breakSeconds+5); $('#break-pill').textContent=`${breakSeconds}s`; };
 
   show('#screen-level');
 }
 
 $('#btn-start').addEventListener('click', ()=>{ ensureAudioCtx(); startWorkout(); });
 
-// ---- Prebuilt straight-sets schedule: ex1×ROUNDS → ex2×ROUNDS → … → ex6×ROUNDS ----
+// ---- Build schedule ----
 function buildSchedule(rows, rounds){
   const seq=[];
   for (let exIdx=0; exIdx<rows.length; exIdx++){
@@ -167,7 +164,7 @@ function startRun(){
   const d = perExerciseSeconds[currentItem().exIdx];
   player.duration=d; player.remaining=d;
   $('#prep-overlay').classList.add('hidden');
-  playExerciseName(player.rows[currentItem().exIdx]); // announce
+  playExerciseName(player.rows[currentItem().exIdx]);
   tickLoop();
 }
 
@@ -225,18 +222,11 @@ function tickLoop(){
   player.raf=requestAnimationFrame(frame);
 }
 
-// Prev/Next across WORK sets in the fixed schedule
-function goPrev(){
-  if (player.mode === 'rest') { player.mode='run'; }
-  if (player.idx > 0){ player.idx -= 1; startPrep(prepSeconds); }
-}
-function goNext(){
-  if (player.idx < player.schedule.length - 1){ player.idx += 1; startPrep(prepSeconds); }
-  else { finishWorkout(); }
-}
+// Prev/Next
+function goPrev(){ if (player.idx > 0){ player.idx -= 1; startPrep(prepSeconds); } }
+function goNext(){ if (player.idx < player.schedule.length - 1){ player.idx += 1; startPrep(prepSeconds); } else { finishWorkout(); } }
 
 function finishWorkout(){
-  // End chime via WebAudio (doesn't pause Spotify)
   beep(1200,180); setTimeout(()=>beep(1400,180),220); setTimeout(()=>beep(1600,220),480);
   show('#screen-home');
 }
