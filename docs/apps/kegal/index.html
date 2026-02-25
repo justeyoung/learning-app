@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Kegel Timer</title>
+
+  <!-- Local (this folder) -->
+  <link rel="stylesheet" href="./style.css" />
+</head>
+
+<body>
+  <main class="container">
+    <header class="header">
+      <div class="topbar">
+        <a class="home-btn" href="../../index.html">Home</a>
+      </div>
+
+      <h1>Kegel Timer</h1>
+      <p class="subtitle">Step 3 (hold/relax) + Step 4 (reps/sets)</p>
+    </header>
+
+    <section class="card">
+      <h2>Settings</h2>
+
+      <div class="grid">
+        <label>
+          Hold (seconds)
+          <input id="holdSeconds" type="number" min="1" max="60" value="5" />
+        </label>
+
+        <label>
+          Rest (seconds)
+          <input id="restSeconds" type="number" min="1" max="60" value="5" />
+        </label>
+
+        <label>
+          Reps (per set)
+          <input id="reps" type="number" min="1" max="50" value="10" />
+        </label>
+
+        <label>
+          Sets (target today)
+          <input id="setsTarget" type="number" min="1" max="10" value="3" />
+        </label>
+      </div>
+
+      <div class="row">
+        <label class="checkbox">
+          <input id="restEqualsHold" type="checkbox" checked />
+          Keep rest equal to hold
+        </label>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Session</h2>
+
+      <div class="status">
+        <div class="phase" id="phaseLabel">Ready</div>
+        <div class="timer" id="timerLabel">00</div>
+        <div class="counts" id="countsLabel">Rep 0/10 · Set 0/3</div>
+      </div>
+
+      <div class="buttons">
+        <button id="startBtn" class="primary" type="button">Start</button>
+        <button id="pauseBtn" type="button" disabled>Pause</button>
+        <button id="resetBtn" type="button">Reset</button>
+      </div>
+
+      <p class="hint">
+        Tip: Keep breathing. No butt/abs/thigh clenching—only a gentle “lift”.
+      </p>
+    </section>
+
+    <footer class="footer">
+      <small>Runs locally in your browser.</small>
+    </footer>
+  </main>
+
+  <!-- Local (this folder) -->
+  <script src="./app.js"></script>
+</body>
+</html>
