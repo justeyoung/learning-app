@@ -1,4 +1,4 @@
-const CACHE_NAME = "exercise-app-v2";
+const CACHE_NAME = "exercise-app-v3";
 const ASSETS_TO_CACHE = [
   "./",
   "./index.html",
@@ -10,8 +10,7 @@ const ASSETS_TO_CACHE = [
   "./assets/css/core.css",
   "./assets/css/counter.css",
   "./assets/css/interval.css",
-
-  "./assets/js/script.js",
+ß
   "./assets/js/core.js",
   "./assets/js/core1.js",
   "./assets/js/counter.js",
