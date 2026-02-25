@@ -1,7 +1,14 @@
-// service-worker.js — simple offline cache for the app
-// Keep this list aligned with your folder structure under /docs
+// ======================================================
+// service-worker.js
+// Offline cache for Learning App Suite
+// ======================================================
 
-const CACHE_NAME = "exercise-app-v4";
+const CACHE_NAME = "exercise-app-v6";
+
+/*
+Keep this aligned with /docs structure
+Only cache files that actually exist
+*/
 
 const ASSETS_TO_CACHE = [
   "./",
@@ -10,77 +17,119 @@ const ASSETS_TO_CACHE = [
   "./icon-192.png",
   "./icon-512.png",
 
-  // CSS
+  // ======================
+  // GLOBAL CSS
+  // ======================
   "./assets/css/style.css",
   "./assets/css/core.css",
   "./assets/css/counter.css",
   "./assets/css/interval.css",
 
-  // JS (only the ones that exist)
+  // ======================
+  // GLOBAL JS
+  // ======================
   "./assets/js/core.js",
   "./assets/js/counter.js",
   "./assets/js/interval1.js",
 
-  // App entry pages
+  // ======================
+  // APPS
+  // ======================
   "./apps/core/core.html",
   "./apps/counter/counter.html",
   "./apps/interval/interval.html",
   "./apps/axis/index.html",
 
-  // Core audio (keep minimal; add more later if you want)
+  // --- KEGAL APP ---
+  "./apps/kegal/index.html",
+  "./apps/kegal/style.css",
+  "./apps/kegal/app.js",
+
+  // ======================
+  // AUDIO (minimal)
+  // ======================
   "./assets/audio/alert.wav",
   "./assets/audio/click.mp3",
   "./assets/audio/celebration.mp3",
   "./assets/audio/new_exercise.mp3",
 ];
 
-// Install — cache known assets
+
+// ======================================================
+// INSTALL
+// ======================================================
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS_TO_CACHE))
+    caches.open(CACHE_NAME)
+      .then(cache => cache.addAll(ASSETS_TO_CACHE))
   );
+
   self.skipWaiting();
 });
 
-// Activate — remove old caches
+
+// ======================================================
+// ACTIVATE — remove old caches
+// ======================================================
 self.addEventListener("activate", (event) => {
   event.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)))
+    caches.keys().then(keys =>
+      Promise.all(
+        keys
+          .filter(key => key !== CACHE_NAME)
+          .map(key => caches.delete(key))
+      )
     )
   );
+
   self.clients.claim();
 });
 
-// Fetch — cache-first for same-origin GET requests, network fallback
+
+// ======================================================
+// FETCH — cache first, network fallback
+// ======================================================
 self.addEventListener("fetch", (event) => {
+
   const req = event.request;
 
+  // only GET requests
   if (req.method !== "GET") return;
 
-  // Only handle same-origin (your site) requests
   const url = new URL(req.url);
+
+  // same-origin only
   if (url.origin !== self.location.origin) return;
 
   event.respondWith(
-    caches.match(req).then((cached) => {
+    caches.match(req).then(cached => {
+
+      // ✅ serve cached immediately
       if (cached) return cached;
 
+      // otherwise fetch
       return fetch(req)
-        .then((res) => {
-          // Cache successful basic responses
-          if (res && res.status === 200 && res.type === "basic") {
+        .then(res => {
+
+          if (
+            res &&
+            res.status === 200 &&
+            res.type === "basic"
+          ) {
             const copy = res.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(req, copy));
+            caches.open(CACHE_NAME)
+              .then(cache => cache.put(req, copy));
           }
+
           return res;
         })
         .catch(() => {
-          // If offline and requesting a page, fall back to home
+
+          // offline HTML fallback
           if (req.headers.get("accept")?.includes("text/html")) {
             return caches.match("./index.html");
           }
-          return cached; // may be undefined; that's okay
+
         });
     })
   );
