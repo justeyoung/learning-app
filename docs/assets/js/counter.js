@@ -27,7 +27,7 @@ function ensureAudio(){
   }
   if (!clickFallback) {
     // Low-volume click fallback – browsers treat short effects leniently
-    clickFallback = new Audio('Click.mp3'); // case must match your file
+    clickFallback = new Audio('click.mp3'); // case must match your file
     clickFallback.preload = 'auto';
     clickFallback.volume = 0.15;
   }
