@@ -341,4 +341,4 @@ document.addEventListener("DOMContentLoaded", () => {
 window.startWorkout = startWorkout;
 window.pauseWorkout = pauseWorkout;
 window.resetWorkout = resetWorkout;
-window.skipPhase = skipPhase;
+window.skipPhase = skipPhase;ß
