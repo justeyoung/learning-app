@@ -1,21 +1,38 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Home Page</title>
-  <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Happy Learning Together</title>
+
+  <!-- Main site styles (dark mode lives in here) -->
+  <link rel="stylesheet" href="./assets/css/style.css" />
+
+  <!-- PWA -->
+  <link rel="manifest" href="./manifest.json" />
+  <meta name="theme-color" content="#0b0f14" />
 </head>
+
 <body>
+  <main class="home">
+    <h1>Happy Learning Together</h1>
+    <p class="sub">Choose an app:</p>
 
-  <h1>Home Page</h1>
+    <div class="menu">
+      <a href="./apps/counter/counter.html"><button type="button">Exercise Counter</button></a>
+      <a href="./apps/interval/interval.html"><button type="button">Interval Walking</button></a>
+      <a href="./apps/core/core.html"><button type="button">Core Exercise Timer</button></a>
+      <a href="./apps/axis/index.html"><button type="button">Axis</button></a>
+    </div>
+  </main>
 
-  <div class="menu">
-    <a href="counter.html"><button>Exercise Counter</button></a>
-    <a href="interval.html"><button>Interval Walking</button></a>
-    <a href="core.html"><button>Core Exercise Timer</button></a>
-    <a href="Axis/index.html"><button>Axis</button></a>
-  </div>
-
+  <!-- Register service worker (if your style.css or other pages already do this, you can remove this block) -->
+  <script>
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("./service-worker.js").catch(() => {});
+      });
+    }
+  </script>
 </body>
 </html>
