@@ -1,111 +1,137 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>BP Isometric</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BP Isometric Protocol</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 
 <body>
-  <header class="topbar">
-    <a class="home-btn" href="../../index.html">Home</a>
-    <div class="title">
-      <h1>BP Isometric Protocol</h1>
-      <p class="sub">7-exercise routine · Calm breathing · Moderate effort</p>
-    </div>
-  </header>
+  <main class="container">
 
-  <main class="wrap">
+    <!-- Header -->
+    <header class="header">
+      <a href="../../index.html" class="home-btn">Home</a>
+      <div>
+        <h1>BP Isometric Protocol</h1>
+        <p class="subtitle">
+          7-exercise routine · Calm breathing · Moderate effort
+        </p>
+      </div>
+    </header>
+
+    <!-- Settings Card -->
     <section class="card">
-      <div class="row">
+
+      <div class="settings-grid">
+
         <div class="field">
           <label for="level">Level</label>
           <select id="level">
-            <option value="Beginner">Beginner (45/60)</option>
-            <option value="Intermediate" selected>Intermediate (75/75)</option>
-            <option value="Advanced">Advanced (120/90)</option>
-            <option value="Custom">Custom</option>
+            <option value="beginner">Beginner (45/60)</option>
+            <option value="intermediate" selected>Intermediate (75/75)</option>
+            <option value="advanced">Advanced (120/90)</option>
           </select>
         </div>
 
         <div class="field">
-          <label for="holdSec">Hold (sec)</label>
-          <input id="holdSec" type="number" min="10" max="240" step="5" value="75" />
+          <label for="holdSeconds">Hold (sec)</label>
+          <input type="number" id="holdSeconds" min="10" max="300" value="75" />
         </div>
 
         <div class="field">
-          <label for="restSec">Rest (sec)</label>
-          <input id="restSec" type="number" min="10" max="240" step="5" value="75" />
+          <label for="restSeconds">Rest (sec)</label>
+          <input type="number" id="restSeconds" min="0" max="300" value="75" />
         </div>
 
         <div class="field">
           <label for="rounds">Rounds</label>
-          <input id="rounds" type="number" min="1" max="3" step="1" value="2" />
+          <input type="number" id="rounds" min="1" max="3" value="2" />
         </div>
+
       </div>
 
-      <div class="row switches">
-        <label class="switch">
-          <input id="soundOn" type="checkbox" checked />
-          <span>Sound</span>
-        </label>
-
-        <label class="switch">
-          <input id="autoRest" type="checkbox" checked />
-          <span>Include rest between phases</span>
+      <!-- Single Rest Toggle -->
+      <div class="checkbox-row">
+        <label>
+          <input type="checkbox" id="includeRest" checked />
+          Include rest between phases
         </label>
       </div>
+
     </section>
 
-    <section class="card">
-      <div class="summary">
-        <div class="metric">
-          <div class="k">Total Time</div>
-          <div class="v" id="totalTime">--:--</div>
+    <!-- Timer Overview -->
+    <section class="card summary-card">
+
+      <div class="summary-grid">
+        <div class="summary-box">
+          <div class="summary-label">Total Time</div>
+          <div class="summary-value" id="totalTime">00:00</div>
         </div>
-        <div class="metric">
-          <div class="k">Time Left</div>
-          <div class="v" id="timeLeft">--:--</div>
+
+        <div class="summary-box">
+          <div class="summary-label">Time Left</div>
+          <div class="summary-value" id="timeLeft">00:00</div>
         </div>
       </div>
 
-      <div class="bar">
-        <div class="bar-fill" id="sessionBar"></div>
+    </section>
+
+    <!-- Exercise Display -->
+    <section class="card session-card">
+
+      <div class="round-info" id="roundInfo">
+        Round 1 of 2 · Exercise 1 of 7
       </div>
 
-      <div class="focus">
-        <div class="meta" id="metaLine">Round 1 of 2 · Exercise 1 of 7</div>
-        <div class="exercise" id="exerciseName">Wall Sit</div>
-        <div class="phase" id="phaseName">READY</div>
-        <div class="big" id="phaseTimer">00:00</div>
+      <h2 id="exerciseName">Wall Sit</h2>
+      <div class="phase-label" id="phaseLabel">HOLD</div>
 
-        <div class="bar thin">
-          <div class="bar-fill" id="phaseBar"></div>
-        </div>
-
-        <div class="breath" id="breathCue">Breathe steadily. Don’t hold your breath.</div>
+      <div class="main-timer" id="mainTimer">
+        00:00
       </div>
 
+      <div class="breathing-hint">
+        Steady breathing. Long exhale on the effort.
+      </div>
+
+      <!-- Controls -->
       <div class="controls">
         <button id="startBtn" class="primary">Start</button>
         <button id="pauseBtn" disabled>Pause</button>
         <button id="resetBtn">Reset</button>
-        <button id="skipBtn" class="ghost" title="Skip current phase">Skip</button>
+        <button id="skipBtn">Skip</button>
       </div>
 
-      <details class="details" id="stepsPanel">
+      <!-- Expandable Steps -->
+      <details class="steps-section">
         <summary>Session steps (tap to expand)</summary>
-        <ol id="stepsList" class="steps"></ol>
+        <ul id="exerciseList">
+          <li>Wall Sit</li>
+          <li>Handgrip Hold</li>
+          <li>Plank</li>
+          <li>Split Squat (Left)</li>
+          <li>Split Squat (Right)</li>
+          <li>Glute Bridge</li>
+          <li>Handgrip Hold</li>
+        </ul>
       </details>
 
-      <div class="log">
+      <!-- Notes -->
+      <div class="notes-field">
         <label for="notes">Notes (optional)</label>
-        <input id="notes" type="text" placeholder="e.g. felt easy, breath steady…" />
-        <button id="saveBtn" class="secondary">Save session to Google Sheet</button>
-        <div class="status" id="saveStatus"></div>
+        <input type="text" id="notes" placeholder="e.g. steady breathing, moderate effort…" />
       </div>
+
+      <!-- Save Button -->
+      <button id="saveSessionBtn" class="save-btn">
+        Save session to Google Sheet
+      </button>
+
     </section>
+
   </main>
 
   <script src="app.js"></script>

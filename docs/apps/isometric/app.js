@@ -1,475 +1,386 @@
-// BP Isometric Protocol — app.js
-// Fixed 7 exercises, 1–3 rounds (default 2), total time + time left,
-// session + phase progress bars, toggle steps list, sound cues,
-// save to Google Sheet (iso_sessions) via Apps Script.
+/* ======================================
+   BP Isometric Protocol – app.js
+   7 exercises · configurable hold/rest · rounds
+   One toggle: include rest between phases
+   Saves session to Google Sheet via Apps Script Web App
+   ====================================== */
 
+/* ========= CONFIG: put your Apps Script URL here ========= */
 const EXEC_URL = "https://script.google.com/macros/s/AKfycbx0cyqzKTaV3NIlZOfFxVKMHa5uWlebH-znDcJbbhPLlC4D0_3CSVOL0Ific-CLKtir/exec";
 
-const EXERCISES = [
-  "Wall Sit",
-  "Handgrip Right",
-  "Handgrip Left",
-  "Forearm Plank",
-  "Split Squat Right",
-  "Split Squat Left",
-  "Glute Bridge",
+/* ========= Fixed routine (7 steps) ========= */
+const ROUTINE = [
+  { key: "wall_sit", name: "Wall Sit" },
+  { key: "handgrip_1", name: "Handgrip Hold" },
+  { key: "plank", name: "Forearm Plank" },
+  { key: "split_left", name: "Split Squat (Left)" },
+  { key: "split_right", name: "Split Squat (Right)" },
+  { key: "glute_bridge", name: "Glute Bridge" },
+  { key: "handgrip_2", name: "Handgrip Hold" },
 ];
 
-const PRESETS = {
-  Beginner: { hold: 45, rest: 60 },
-  Intermediate: { hold: 75, rest: 75 },
-  Advanced: { hold: 120, rest: 90 },
-  Custom: null,
+/* ========= Level presets ========= */
+const LEVEL_PRESETS = {
+  beginner: { hold: 45, rest: 60 },
+  intermediate: { hold: 75, rest: 75 },
+  advanced: { hold: 120, rest: 90 },
 };
 
+/* ========= DOM ========= */
 const $ = (id) => document.getElementById(id);
 
 const els = {
+  // settings
   level: $("level"),
-  holdSec: $("holdSec"),
-  restSec: $("restSec"),
+  holdSeconds: $("holdSeconds"),
+  restSeconds: $("restSeconds"),
   rounds: $("rounds"),
-  soundOn: $("soundOn"),
-  autoRest: $("autoRest"),
+  includeRest: $("includeRest"),
+  notes: $("notes"),
 
+  // ui
   totalTime: $("totalTime"),
   timeLeft: $("timeLeft"),
-  sessionBar: $("sessionBar"),
-
-  metaLine: $("metaLine"),
+  roundInfo: $("roundInfo"),
   exerciseName: $("exerciseName"),
-  phaseName: $("phaseName"),
-  phaseTimer: $("phaseTimer"),
-  phaseBar: $("phaseBar"),
-  breathCue: $("breathCue"),
+  phaseLabel: $("phaseLabel"),
+  mainTimer: $("mainTimer"),
+  exerciseList: $("exerciseList"),
 
+  // buttons
   startBtn: $("startBtn"),
   pauseBtn: $("pauseBtn"),
   resetBtn: $("resetBtn"),
   skipBtn: $("skipBtn"),
-
-  stepsList: $("stepsList"),
-
-  notes: $("notes"),
-  saveBtn: $("saveBtn"),
-  saveStatus: $("saveStatus"),
+  saveSessionBtn: $("saveSessionBtn"),
 };
 
-// ---------- Audio (soft beeps + chime) ----------
-let audioCtx = null;
-function ensureAudio() {
-  if (!audioCtx) {
-    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  }
-}
-function tone(freq = 880, dur = 0.08, vol = 0.08) {
-  if (!els.soundOn.checked) return;
-  ensureAudio();
-  const t = audioCtx.currentTime;
-  const o = audioCtx.createOscillator();
-  const g = audioCtx.createGain();
-  o.type = "sine";
-  o.frequency.value = freq;
-  g.gain.value = vol;
-  o.connect(g).connect(audioCtx.destination);
-  o.start(t);
-  g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-  o.stop(t + dur + 0.02);
-}
-function beepCountdown(n) {
-  // n=5..1 (slightly rising)
-  const base = 820;
-  tone(base + (5 - n) * 60, 0.07, 0.07);
-}
-function chime() {
-  // gentle two-tone
-  tone(660, 0.08, 0.06);
-  setTimeout(() => tone(990, 0.10, 0.06), 120);
-}
+/* ========= State ========= */
+let tickId = null;
 
-// unlock audio on first user gesture
-window.addEventListener("pointerdown", () => {
-  if (!els.soundOn.checked) return;
-  ensureAudio();
-  if (audioCtx && audioCtx.state === "suspended") audioCtx.resume().catch(() => {});
-}, { once: true });
-
-// ---------- Time helpers ----------
-function pad2(n) { return String(n).padStart(2, "0"); }
-function fmtMMSS(sec) {
-  sec = Math.max(0, Math.round(sec));
-  const m = Math.floor(sec / 60);
-  const s = sec % 60;
-  return `${pad2(m)}:${pad2(s)}`;
-}
-function isoNow() {
-  return new Date().toISOString();
-}
-function dateNow() {
-  return new Date().toISOString().slice(0, 10);
-}
-function timeNow() {
-  return new Date().toISOString().slice(11, 16);
-}
-function uid() {
-  return (crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(16).slice(2)}`);
-}
-
-// ---------- Session model ----------
-/**
- * We create a timeline of phases:
- * For each exercise step:
- *   HOLD (holdSec)
- *   REST (restSec) except after final step of final round if autoRest=false or end-of-session
- */
-const PHASE = {
-  READY: "READY",
-  HOLD: "HOLD",
-  REST: "REST",
-  DONE: "DONE",
-};
-
-let timerId = null;
-
-let session = {
+const state = {
   running: false,
-  startedAtMs: null,
-
-  level: "Intermediate",
-  holdSec: 75,
-  restSec: 75,
-  roundsPlanned: 2,
-
-  // timeline
-  phases: [], // [{ round, stepIndex, exercise, phase, durSec }]
-  phaseIndex: 0,
-
-  phaseLeft: 0,           // seconds left in current phase
-  totalPlanned: 0,        // seconds
-  totalElapsed: 0,        // seconds elapsed while running
-  totalLeft: 0,           // seconds
-  completed: false,
-
-  // progress counts
-  roundsCompleted: 0,
+  startedAtMs: null, // when session started
+  elapsedSec: 0,     // actual elapsed (counts time passing while running)
+  // session structure
+  round: 1,
+  stepIndex: 0,      // 0..6
+  phase: "HOLD",     // HOLD | REST | DONE
+  leftSec: 0,        // seconds left in current phase
+  // bookkeeping
   stepsCompleted: 0,
+  roundsCompleted: 0,
+  completed: false,
 };
 
-function readInputs() {
-  const level = els.level.value;
-  const holdSec = clampInt(els.holdSec.value, 10, 240, 75);
-  const restSec = clampInt(els.restSec.value, 10, 240, 75);
-  const rounds = clampInt(els.rounds.value, 1, 3, 2);
-  return { level, holdSec, restSec, rounds };
-}
-
+/* ========= Helpers ========= */
 function clampInt(v, min, max, fallback) {
   const n = parseInt(v, 10);
   if (!Number.isFinite(n)) return fallback;
   return Math.max(min, Math.min(max, n));
 }
 
-function buildTimeline({ holdSec, restSec, rounds }) {
-  const includeRest = els.autoRest.checked;
-  const phases = [];
-
-  for (let r = 1; r <= rounds; r++) {
-    for (let i = 0; i < EXERCISES.length; i++) {
-      phases.push({
-        round: r,
-        stepIndex: i,
-        exercise: EXERCISES[i],
-        phase: PHASE.HOLD,
-        durSec: holdSec,
-      });
-
-      // rest between holds (optional), but never after final step of final round
-      const isLast = (r === rounds && i === EXERCISES.length - 1);
-      if (includeRest && !isLast) {
-        phases.push({
-          round: r,
-          stepIndex: i,
-          exercise: EXERCISES[i],
-          phase: PHASE.REST,
-          durSec: restSec,
-        });
-      }
-    }
-  }
-
-  const totalPlanned = phases.reduce((s, p) => s + p.durSec, 0);
-  return { phases, totalPlanned };
+function pad2(n) {
+  return String(n).padStart(2, "0");
 }
 
-function rebuildFromInputs() {
-  const { level, holdSec, restSec, rounds } = readInputs();
+function fmtMMSS(totalSec) {
+  totalSec = Math.max(0, Math.round(totalSec));
+  const m = Math.floor(totalSec / 60);
+  const s = totalSec % 60;
+  return `${pad2(m)}:${pad2(s)}`;
+}
 
-  session.level = level;
-  session.holdSec = holdSec;
-  session.restSec = restSec;
-  session.roundsPlanned = rounds;
+function readSettings() {
+  const level = els.level?.value || "intermediate";
+  const hold = clampInt(els.holdSeconds?.value, 10, 300, LEVEL_PRESETS[level].hold);
+  const rest = clampInt(els.restSeconds?.value, 0, 300, LEVEL_PRESETS[level].rest);
+  const rounds = clampInt(els.rounds?.value, 1, 3, 2);
+  const includeRest = !!els.includeRest?.checked;
+  const notes = (els.notes?.value || "").trim();
 
-  const { phases, totalPlanned } = buildTimeline({ holdSec, restSec, rounds });
-  session.phases = phases;
-  session.totalPlanned = totalPlanned;
+  return { level, hold, rest, rounds, includeRest, notes };
+}
 
-  // reset preview state (not running)
-  if (!session.running) {
-    session.phaseIndex = 0;
-    session.phaseLeft = phases[0]?.durSec || 0;
-    session.totalElapsed = 0;
-    session.totalLeft = totalPlanned;
-    session.completed = false;
-    session.roundsCompleted = 0;
-    session.stepsCompleted = 0;
+/* Compute planned total seconds based on settings */
+function computePlannedTotalSec() {
+  const { hold, rest, rounds, includeRest } = readSettings();
+  const stepsPerRound = ROUTINE.length;
+  const holdTotal = rounds * stepsPerRound * hold;
+
+  if (!includeRest || rest === 0) return holdTotal;
+
+  // rest happens after each hold EXCEPT after the very last hold of the entire session
+  const totalHolds = rounds * stepsPerRound;
+  const restCount = Math.max(0, totalHolds - 1);
+  return holdTotal + restCount * rest;
+}
+
+function setButtons() {
+  els.startBtn.disabled = state.running || state.completed;
+  els.pauseBtn.disabled = !state.running;
+  // reset always available
+  els.skipBtn.disabled = state.completed;
+}
+
+function renderExerciseList() {
+  if (!els.exerciseList) return;
+  els.exerciseList.innerHTML = "";
+  ROUTINE.forEach((ex, idx) => {
+    const li = document.createElement("li");
+    li.textContent = ex.name;
+    if (idx < state.stepIndex || state.round > 1 && idx === ROUTINE.length - 1 && state.stepIndex === 0) {
+      // keep simple; main indicator is header
+    }
+    els.exerciseList.appendChild(li);
+  });
+}
+
+function render() {
+  const { rounds } = readSettings();
+  const plannedTotal = computePlannedTotalSec();
+  const timeLeft = Math.max(0, plannedTotal - state.elapsedSec);
+
+  if (els.totalTime) els.totalTime.textContent = fmtMMSS(plannedTotal);
+  if (els.timeLeft) els.timeLeft.textContent = fmtMMSS(timeLeft);
+
+  if (els.roundInfo) {
+    const r = Math.min(state.round, rounds);
+    const exNum = Math.min(state.stepIndex + 1, ROUTINE.length);
+    els.roundInfo.textContent = `Round ${r} of ${rounds} · Exercise ${exNum} of ${ROUTINE.length}`;
+  }
+
+  const currentEx = ROUTINE[state.stepIndex] || ROUTINE[ROUTINE.length - 1];
+  if (els.exerciseName) els.exerciseName.textContent = currentEx.name;
+
+  if (els.phaseLabel) {
+    els.phaseLabel.textContent = state.completed ? "DONE" : state.phase;
+  }
+
+  if (els.mainTimer) {
+    els.mainTimer.textContent = fmtMMSS(state.leftSec);
+  }
+
+  setButtons();
+}
+
+/* ========= Phase engine ========= */
+function initSessionFresh() {
+  const { hold } = readSettings();
+  state.running = false;
+  state.startedAtMs = null;
+  state.elapsedSec = 0;
+
+  state.round = 1;
+  state.stepIndex = 0;
+  state.phase = "HOLD";
+  state.leftSec = hold;
+
+  state.stepsCompleted = 0;
+  state.roundsCompleted = 0;
+  state.completed = false;
+
+  renderExerciseList();
+  render();
+}
+
+function advancePhase() {
+  const { hold, rest, rounds, includeRest } = readSettings();
+
+  if (state.completed) return;
+
+  // When HOLD ends
+  if (state.phase === "HOLD") {
+    // If rest disabled or rest=0: go directly to next hold
+    if (!includeRest || rest === 0) {
+      goNextHold(hold, rounds);
+      return;
+    }
+
+    // Otherwise: go to REST (unless this was the last hold of entire session)
+    const isLastHoldOfSession =
+      state.round === rounds && state.stepIndex === ROUTINE.length - 1;
+
+    if (isLastHoldOfSession) {
+      finishSession();
+      return;
+    }
+
+    state.phase = "REST";
+    state.leftSec = rest;
+    render();
+    return;
+  }
+
+  // When REST ends -> next HOLD
+  if (state.phase === "REST") {
+    goNextHold(hold, rounds);
+    return;
+  }
+}
+
+function goNextHold(hold, rounds) {
+  // Mark one exercise step completed
+  state.stepsCompleted += 1;
+
+  // Move to next exercise
+  if (state.stepIndex < ROUTINE.length - 1) {
+    state.stepIndex += 1;
+    state.phase = "HOLD";
+    state.leftSec = hold;
+    render();
+    return;
+  }
+
+  // End of round
+  state.roundsCompleted = Math.max(state.roundsCompleted, state.round);
+  if (state.round < rounds) {
+    state.round += 1;
+    state.stepIndex = 0;
+    state.phase = "HOLD";
+    state.leftSec = hold;
+    render();
+    return;
+  }
+
+  // End of session
+  finishSession();
+}
+
+function finishSession() {
+  state.completed = true;
+  state.running = false;
+  state.phase = "DONE";
+  state.leftSec = 0;
+  stopTick();
+  render();
+}
+
+/* ========= Timer loop ========= */
+function tick() {
+  if (!state.running || state.completed) return;
+
+  state.leftSec -= 1;
+  state.elapsedSec += 1;
+
+  if (state.leftSec <= 0) {
+    advancePhase();
   }
 
   render();
 }
 
-function currentPhase() {
-  return session.phases[session.phaseIndex] || null;
+function startTick() {
+  if (tickId) return;
+  tickId = setInterval(tick, 1000);
 }
 
-// ---------- UI: steps list ----------
-function renderStepsList() {
-  const p = currentPhase();
-  const activeStep = p ? p.stepIndex : 0;
-
-  // determine completed steps in total run
-  // we track stepsCompleted as "holds completed" count of exercises, not rests
-  // For list, mark done if we have progressed beyond step in current round *and* within overall.
-  // Simpler: if phaseIndex has passed the HOLD phase of that step in current round.
-  // We'll compute "current hold count completed" from phaseIndex.
-  const completedHoldCount = countCompletedHolds();
-
-  // Build list just 7 items (not repeats across rounds)
-  els.stepsList.innerHTML = "";
-  EXERCISES.forEach((name, i) => {
-    const li = document.createElement("li");
-    li.textContent = name;
-
-    // Active = the current step index (during hold/rest)
-    if (i === activeStep && !session.completed) li.classList.add("active");
-
-    // Done = if at least i+1 holds have been completed in current round when in round 1,
-    // but across rounds this gets tricky. Keep it simple: mark done if overall holds completed
-    // has reached at least (currentRound-1)*7 + (i+1) when in that round.
-    const cur = currentPhase();
-    const curRound = cur ? cur.round : 1;
-    const needed = (curRound - 1) * EXERCISES.length + (i + 1);
-    if (completedHoldCount >= needed) li.classList.add("done");
-
-    els.stepsList.appendChild(li);
-  });
+function stopTick() {
+  if (!tickId) return;
+  clearInterval(tickId);
+  tickId = null;
 }
 
-function countCompletedHolds() {
-  // Count how many HOLD phases are fully completed based on phaseIndex & phaseLeft
-  // All phases before current phase are completed.
-  const donePhases = session.phases.slice(0, session.phaseIndex);
-  return donePhases.filter(p => p.phase === PHASE.HOLD).length;
-}
-
-// ---------- Rendering ----------
-function setStatus(msg, kind = "") {
-  els.saveStatus.textContent = msg || "";
-  els.saveStatus.className = "status" + (kind ? ` ${kind}` : "");
-}
-
-function render() {
-  const p = currentPhase();
-
-  els.totalTime.textContent = fmtMMSS(session.totalPlanned);
-  els.timeLeft.textContent = fmtMMSS(session.totalLeft);
-
-  // session bar
-  const ratio = session.totalPlanned > 0 ? (session.totalElapsed / session.totalPlanned) : 0;
-  els.sessionBar.style.width = `${Math.max(0, Math.min(100, ratio * 100))}%`;
-
-  if (!p) {
-    els.metaLine.textContent = `Round 0 of ${session.roundsPlanned} · Exercise 0 of 7`;
-    els.exerciseName.textContent = "—";
-    els.phaseName.textContent = PHASE.DONE;
-    els.phaseTimer.textContent = "00:00";
-    els.phaseBar.style.width = "100%";
-    return;
-  }
-
-  els.metaLine.textContent = `Round ${p.round} of ${session.roundsPlanned} · Exercise ${p.stepIndex + 1} of 7`;
-  els.exerciseName.textContent = p.exercise;
-  els.phaseName.textContent = session.completed ? PHASE.DONE : p.phase;
-  els.phaseTimer.textContent = fmtMMSS(session.phaseLeft);
-
-  // phase bar (0..100)
-  const phaseDur = p.durSec || 1;
-  const phaseDone = phaseDur - session.phaseLeft;
-  const phaseRatio = phaseDone / phaseDur;
-  els.phaseBar.style.width = `${Math.max(0, Math.min(100, phaseRatio * 100))}%`;
-
-  // Breath cue (simple)
-  els.breathCue.textContent =
-    p.phase === PHASE.HOLD
-      ? "Steady breathing. Long exhale on the effort."
-      : p.phase === PHASE.REST
-        ? "Recover. Breathe slow and easy."
-        : "Breathe steadily. Don’t hold your breath.";
-
-  // Buttons
-  els.startBtn.disabled = session.running || session.completed;
-  els.pauseBtn.disabled = !session.running;
-  els.resetBtn.disabled = false;
-  els.skipBtn.disabled = session.completed;
-
-  renderStepsList();
-}
-
-// ---------- Engine ----------
+/* ========= Controls ========= */
 function start() {
-  if (session.running || session.completed) return;
-
-  // if READY state (fresh), ensure timeline exists
-  if (!session.phases.length) rebuildFromInputs();
-
-  session.running = true;
-  session.startedAtMs = session.startedAtMs ?? Date.now();
-  setStatus("");
-
-  timerId = setInterval(tick, 1000);
+  if (state.running || state.completed) return;
+  state.running = true;
+  if (!state.startedAtMs) state.startedAtMs = Date.now();
+  startTick();
   render();
 }
 
 function pause() {
-  if (!session.running) return;
-  session.running = false;
-  if (timerId) clearInterval(timerId);
-  timerId = null;
+  if (!state.running) return;
+  state.running = false;
+  stopTick();
   render();
 }
 
 function reset() {
-  if (timerId) clearInterval(timerId);
-  timerId = null;
-
-  session.running = false;
-  session.startedAtMs = null;
-
-  rebuildFromInputs(); // rebuild and reset preview
-  setStatus("");
+  stopTick();
+  initSessionFresh();
 }
 
 function skip() {
-  if (session.completed) return;
-  // End current phase immediately
-  session.phaseLeft = 0;
-  advancePhase(true);
+  if (state.completed) return;
+
+  // treat as finishing current phase immediately (counts no extra time)
+  state.leftSec = 0;
+  advancePhase();
   render();
 }
 
-function tick() {
-  if (!session.running || session.completed) return;
+/* ========= Save to Google Sheet ========= */
+function setSaveButtonState(mode, msg) {
+  // mode: idle | saving | ok | error
+  if (!els.saveSessionBtn) return;
 
-  session.phaseLeft -= 1;
-  session.totalElapsed += 1;
-  session.totalLeft = Math.max(0, session.totalPlanned - session.totalElapsed);
-
-  const p = currentPhase();
-  if (p && p.phase === PHASE.HOLD) {
-    // last 5 seconds countdown beeps
-    if (session.phaseLeft > 0 && session.phaseLeft <= 5) {
-      beepCountdown(session.phaseLeft);
-    }
-  }
-
-  if (session.phaseLeft <= 0) {
-    advancePhase(false);
-  }
-
-  render();
-}
-
-function advancePhase(fromSkip) {
-  const p = currentPhase();
-  if (!p) return;
-
-  // If we just finished a HOLD, count a completed step
-  if (p.phase === PHASE.HOLD) {
-    session.stepsCompleted += 1;
-  }
-
-  // Move to next phase
-  session.phaseIndex += 1;
-
-  // Phase change chime (not on skip spam)
-  if (!fromSkip) chime();
-
-  if (session.phaseIndex >= session.phases.length) {
-    // done
-    finish(true);
+  if (mode === "saving") {
+    els.saveSessionBtn.disabled = true;
+    els.saveSessionBtn.textContent = msg || "Saving…";
     return;
   }
 
-  const next = currentPhase();
-  session.phaseLeft = next.durSec;
-
-  // update rounds completed (when a round's last HOLD is completed)
-  if (p.phase === PHASE.HOLD && p.stepIndex === EXERCISES.length - 1) {
-    session.roundsCompleted = p.round;
-  }
-}
-
-function finish(completed) {
-  if (timerId) clearInterval(timerId);
-  timerId = null;
-
-  session.running = false;
-  session.completed = completed;
-  session.totalLeft = 0;
-
-  // Make sure roundsCompleted is correct
-  const holdsTotal = session.roundsPlanned * EXERCISES.length;
-  if (session.stepsCompleted >= holdsTotal) session.roundsCompleted = session.roundsPlanned;
-
-  render();
-}
-
-// ---------- Save to Google Sheet ----------
-async function saveSession() {
-  if (!EXEC_URL || EXEC_URL.includes("PASTE_YOUR_EXEC_URL_HERE")) {
-    setStatus("Set EXEC_URL in app.js first.", "err");
+  if (mode === "ok") {
+    els.saveSessionBtn.disabled = false;
+    els.saveSessionBtn.textContent = msg || "Saved ✅";
+    setTimeout(() => {
+      els.saveSessionBtn.textContent = "Save session to Google Sheet";
+    }, 1800);
     return;
   }
 
-  // If user hasn't run it, allow saving as not completed
-  const holdsTotal = session.roundsPlanned * EXERCISES.length;
-  const totalSecActual = session.totalElapsed;
+  if (mode === "error") {
+    els.saveSessionBtn.disabled = false;
+    els.saveSessionBtn.textContent = msg || "Save failed — try again";
+    setTimeout(() => {
+      els.saveSessionBtn.textContent = "Save session to Google Sheet";
+    }, 2400);
+    return;
+  }
 
+  // idle
+  els.saveSessionBtn.disabled = false;
+  els.saveSessionBtn.textContent = "Save session to Google Sheet";
+}
+
+function buildSessionPayload() {
+  const s = readSettings();
+
+  const plannedTotalSec = computePlannedTotalSec();
   const payload = {
     type: "iso_session",
-    timestamp_iso: isoNow(),
-    date: dateNow(),
-    time: timeNow(),
-    session_id: uid(),
+    timestamp_iso: new Date().toISOString(),
 
-    level: session.level,
-    hold_sec: session.holdSec,
-    rest_sec: session.restSec,
+    level: s.level,
+    hold_sec: s.hold,
+    rest_sec: s.rest,
+    include_rest: s.includeRest,
+    rounds_planned: s.rounds,
 
-    rounds_planned: session.roundsPlanned,
-    rounds_completed: session.roundsCompleted,
+    rounds_completed: state.roundsCompleted,
+    steps_completed: state.stepsCompleted,
 
-    steps_completed: session.stepsCompleted,
+    total_sec_planned: plannedTotalSec,
+    total_sec_actual: state.elapsedSec,
 
-    total_sec_planned: session.totalPlanned,
-    total_sec_actual: totalSecActual,
-
-    completed: session.stepsCompleted >= holdsTotal && session.completed === true,
-    notes: (els.notes.value || "").trim(),
+    completed: state.completed,
+    notes: s.notes,
   };
 
-  // UX: disable button + show progress
-  els.saveBtn.disabled = true;
-  setStatus("Saving…");
+  return payload;
+}
+
+async function saveSession() {
+  if (!EXEC_URL || EXEC_URL.includes("PASTE_YOUR_WEB_APP_EXEC_URL_HERE")) {
+    setSaveButtonState("error", "Set EXEC_URL in app.js first");
+    return;
+  }
+
+  setSaveButtonState("saving", "Saving…");
+
+  const payload = buildSessionPayload();
 
   try {
     const res = await fetch(EXEC_URL, {
@@ -478,62 +389,83 @@ async function saveSession() {
       body: JSON.stringify(payload),
     });
 
-    // Apps Script may return HTML if it redirects; so we don't rely on JSON parsing only.
-    const txt = await res.text();
+    const text = await res.text();
+    let json = null;
+    try { json = JSON.parse(text); } catch {}
 
-    // Heuristic: if it contains '"ok":true' we call it success, otherwise still may have succeeded.
-    if (txt.includes('"ok":true') || res.ok) {
-      setStatus("Saved ✅", "ok");
-    } else {
-      setStatus("Saved? Check Sheet (response unusual).", "err");
+    if (!res.ok) {
+      setSaveButtonState("error", `Save failed (${res.status})`);
+      return;
     }
-  } catch (e) {
-    setStatus("Save failed. Check connection / URL.", "err");
-  } finally {
-    els.saveBtn.disabled = false;
+
+    if (json && json.ok) {
+      setSaveButtonState("ok", "Saved ✅");
+      return;
+    }
+
+    // some deployments return plain text or non-json even when successful
+    setSaveButtonState("ok", "Saved ✅");
+  } catch (err) {
+    console.warn(err);
+    setSaveButtonState("error", "Save failed — offline?");
   }
 }
 
-// ---------- Presets ----------
-function applyPreset(level) {
-  const p = PRESETS[level];
-  if (!p) return; // Custom
-  els.holdSec.value = String(p.hold);
-  els.restSec.value = String(p.rest);
+/* ========= Wiring ========= */
+function applyPresetFromLevel() {
+  const level = els.level?.value || "intermediate";
+  const preset = LEVEL_PRESETS[level] || LEVEL_PRESETS.intermediate;
+
+  // only set if fields exist
+  if (els.holdSeconds) els.holdSeconds.value = String(preset.hold);
+  if (els.restSeconds) els.restSeconds.value = String(preset.rest);
+
+  // reset phase timer to match new hold if not running
+  if (!state.running && !state.completed) {
+    state.leftSec = preset.hold;
+  }
+  render();
 }
 
-// ---------- Wire up ----------
-function selectAllOnFocus(e) {
-  // make it easy to type over numbers
-  e.target.select?.();
+function onSettingsChange() {
+  // If user edits hold/rest/rounds or toggles rest:
+  // - recalc planned total
+  // - if not running, update leftSec to current phase baseline
+  const { hold, rest, includeRest } = readSettings();
+
+  if (!state.running && !state.completed) {
+    if (state.phase === "HOLD") state.leftSec = hold;
+    if (state.phase === "REST") state.leftSec = includeRest ? rest : hold;
+  }
+
+  render();
 }
 
-els.holdSec.addEventListener("focus", selectAllOnFocus);
-els.restSec.addEventListener("focus", selectAllOnFocus);
-els.rounds.addEventListener("focus", selectAllOnFocus);
+document.addEventListener("DOMContentLoaded", () => {
+  // initial list render
+  renderExerciseList();
 
-els.level.addEventListener("change", () => {
-  const level = els.level.value;
-  if (level !== "Custom") applyPreset(level);
-  rebuildFromInputs();
+  // init state using default values from HTML
+  initSessionFresh();
+
+  // bindings
+  els.startBtn?.addEventListener("click", (e) => { e.preventDefault(); start(); });
+  els.pauseBtn?.addEventListener("click", (e) => { e.preventDefault(); pause(); });
+  els.resetBtn?.addEventListener("click", (e) => { e.preventDefault(); reset(); });
+  els.skipBtn?.addEventListener("click", (e) => { e.preventDefault(); skip(); });
+
+  els.saveSessionBtn?.addEventListener("click", (e) => {
+    e.preventDefault();
+    saveSession();
+  });
+
+  // settings change hooks
+  els.level?.addEventListener("change", applyPresetFromLevel);
+  els.holdSeconds?.addEventListener("input", onSettingsChange);
+  els.restSeconds?.addEventListener("input", onSettingsChange);
+  els.rounds?.addEventListener("input", onSettingsChange);
+  els.includeRest?.addEventListener("change", onSettingsChange);
+
+  // default save button label
+  setSaveButtonState("idle");
 });
-
-["input", "change"].forEach((evt) => {
-  els.holdSec.addEventListener(evt, () => { els.level.value = "Custom"; rebuildFromInputs(); });
-  els.restSec.addEventListener(evt, () => { els.level.value = "Custom"; rebuildFromInputs(); });
-  els.rounds.addEventListener(evt, () => rebuildFromInputs());
-  els.autoRest.addEventListener(evt, () => rebuildFromInputs());
-});
-
-els.startBtn.addEventListener("click", (e) => { e.preventDefault(); start(); });
-els.pauseBtn.addEventListener("click", (e) => { e.preventDefault(); pause(); });
-els.resetBtn.addEventListener("click", (e) => { e.preventDefault(); reset(); });
-els.skipBtn.addEventListener("click", (e) => { e.preventDefault(); skip(); });
-
-els.saveBtn.addEventListener("click", (e) => { e.preventDefault(); saveSession(); });
-
-// Init
-(function init() {
-  // Build initial steps list (static)
-  rebuildFromInputs();
-})();
