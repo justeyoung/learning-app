@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>BP Isometric</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+
+<body>
+  <header class="topbar">
+    <a class="home-btn" href="../../index.html">Home</a>
+    <div class="title">
+      <h1>BP Isometric Protocol</h1>
+      <p class="sub">7-exercise routine · Calm breathing · Moderate effort</p>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <section class="card">
+      <div class="row">
+        <div class="field">
+          <label for="level">Level</label>
+          <select id="level">
+            <option value="Beginner">Beginner (45/60)</option>
+            <option value="Intermediate" selected>Intermediate (75/75)</option>
+            <option value="Advanced">Advanced (120/90)</option>
+            <option value="Custom">Custom</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="holdSec">Hold (sec)</label>
+          <input id="holdSec" type="number" min="10" max="240" step="5" value="75" />
+        </div>
+
+        <div class="field">
+          <label for="restSec">Rest (sec)</label>
+          <input id="restSec" type="number" min="10" max="240" step="5" value="75" />
+        </div>
+
+        <div class="field">
+          <label for="rounds">Rounds</label>
+          <input id="rounds" type="number" min="1" max="3" step="1" value="2" />
+        </div>
+      </div>
+
+      <div class="row switches">
+        <label class="switch">
+          <input id="soundOn" type="checkbox" checked />
+          <span>Sound</span>
+        </label>
+
+        <label class="switch">
+          <input id="autoRest" type="checkbox" checked />
+          <span>Include rest between phases</span>
+        </label>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="summary">
+        <div class="metric">
+          <div class="k">Total Time</div>
+          <div class="v" id="totalTime">--:--</div>
+        </div>
+        <div class="metric">
+          <div class="k">Time Left</div>
+          <div class="v" id="timeLeft">--:--</div>
+        </div>
+      </div>
+
+      <div class="bar">
+        <div class="bar-fill" id="sessionBar"></div>
+      </div>
+
+      <div class="focus">
+        <div class="meta" id="metaLine">Round 1 of 2 · Exercise 1 of 7</div>
+        <div class="exercise" id="exerciseName">Wall Sit</div>
+        <div class="phase" id="phaseName">READY</div>
+        <div class="big" id="phaseTimer">00:00</div>
+
+        <div class="bar thin">
+          <div class="bar-fill" id="phaseBar"></div>
+        </div>
+
+        <div class="breath" id="breathCue">Breathe steadily. Don’t hold your breath.</div>
+      </div>
+
+      <div class="controls">
+        <button id="startBtn" class="primary">Start</button>
+        <button id="pauseBtn" disabled>Pause</button>
+        <button id="resetBtn">Reset</button>
+        <button id="skipBtn" class="ghost" title="Skip current phase">Skip</button>
+      </div>
+
+      <details class="details" id="stepsPanel">
+        <summary>Session steps (tap to expand)</summary>
+        <ol id="stepsList" class="steps"></ol>
+      </details>
+
+      <div class="log">
+        <label for="notes">Notes (optional)</label>
+        <input id="notes" type="text" placeholder="e.g. felt easy, breath steady…" />
+        <button id="saveBtn" class="secondary">Save session to Google Sheet</button>
+        <div class="status" id="saveStatus"></div>
+      </div>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>

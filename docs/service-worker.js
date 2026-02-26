@@ -1,7 +1,7 @@
 // service-worker.js — offline cache for /docs site
 // Bump CACHE_NAME whenever you change file paths or add/remove assets.
 
-const CACHE_NAME = "exercise-app-v6";
+const CACHE_NAME = "exercise-app-v7";
 
 const ASSETS_TO_CACHE = [
   "./",
@@ -11,14 +11,17 @@ const ASSETS_TO_CACHE = [
   "./icon-512.png",
   "./.nojekyll",
 
+
   // CSS
   "./assets/css/style.css",
   "./apps/bp-tracker/style.css",
   "./assets/css/core.css",
   "./assets/css/counter.css",
+  "./apps/isometric/style.css",
   "./assets/css/interval.css",
 
   // JS
+  "./apps/isometric/app.js",
   "./assets/js/core.js",
   "./assets/js/counter.js",
   "./assets/js/interval1.js",
@@ -32,6 +35,7 @@ const ASSETS_TO_CACHE = [
   "./apps/kegal/index.html",
   "./apps/bp-tracker/index.html",
   "./apps/bp-tracker/info.html",
+  "./apps/isometric/index.html",
 
   // Minimal audio used by apps
   "./assets/audio/alert.wav",
