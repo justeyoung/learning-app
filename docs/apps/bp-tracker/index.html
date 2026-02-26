@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>BP Tracker</title>
+  <link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+  <main class="container">
+    <header class="header">
+      <div class="topbar">
+        <a class="home-btn" href="../../index.html">Home</a>
+        <a class="ghost-btn" href="./info.html">Info</a>
+      </div>
+      <h1>BP Tracker</h1>
+      <p class="subtitle">Enter 3 readings → automatic average → save to Google Sheet</p>
+    </header>
+
+    <section class="card">
+      <h2>Today's Entry</h2>
+
+      <div class="grid3">
+        <div class="triplet">
+          <label>Systolic <input id="sys1" type="number" value="120"></label>
+          <label>Diastolic <input id="dia1" type="number" value="80"></label>
+          <label>Pulse <input id="pul1" type="number" value="70"></label>
+        </div>
+
+        <div class="triplet">
+          <label>Systolic <input id="sys2" type="number" value="120"></label>
+          <label>Diastolic <input id="dia2" type="number" value="80"></label>
+          <label>Pulse <input id="pul2" type="number" value="70"></label>
+        </div>
+
+        <div class="triplet">
+          <label>Systolic <input id="sys3" type="number" value="120"></label>
+          <label>Diastolic <input id="dia3" type="number" value="80"></label>
+          <label>Pulse <input id="pul3" type="number" value="70"></label>
+        </div>
+      </div>
+
+      <div class="avgbar">
+        <div>Avg Systolic: <strong id="avgSys">—</strong></div>
+        <div>Avg Diastolic: <strong id="avgDia">—</strong></div>
+        <div>Avg Pulse: <strong id="avgPul">—</strong></div>
+      </div>
+
+      <div class="buttons">
+        <button id="saveBtn" class="primary">Save to Google Sheet</button>
+        <button id="refreshBtn">Refresh Data</button>
+      </div>
+
+      <p id="statusMsg" class="hint"></p>
+    </section>
+
+    <section class="card">
+      <h2>Weekly Trend (Last 7 Days)</h2>
+      <canvas id="chart" width="800" height="350"></canvas>
+    </section>
+  </main>
+
+  <script src="./app.js"></script>
+</body>
+</html>

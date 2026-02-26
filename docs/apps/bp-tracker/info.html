@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>BP Tracker — Info</title>
+  <link rel="stylesheet" href="./style.css" />
+  <style>
+    details{
+      border:1px solid var(--border);
+      background:#0e1420;
+      border-radius:12px;
+      padding:12px 12px;
+      margin-top:12px;
+    }
+    summary{
+      cursor:pointer;
+      color:var(--text);
+      font-weight:600;
+      outline:none;
+    }
+    summary::marker{ color: var(--muted); }
+    details p, details ul{
+      color:var(--muted);
+      margin:10px 0 0 0;
+      line-height:1.55;
+    }
+    details ul{ padding-left:18px; }
+    .tag{
+      display:inline-block;
+      border:1px solid var(--border);
+      border-radius:999px;
+      padding:4px 10px;
+      font-size:12px;
+      color:var(--muted);
+      margin-right:8px;
+      margin-top:8px;
+    }
+    .range{
+      display:grid;
+      grid-template-columns: 1fr;
+      gap:10px;
+      margin-top:10px;
+    }
+    .range .row{
+      border:1px solid var(--border);
+      border-radius:12px;
+      padding:10px 12px;
+      background: rgba(255,255,255,0.02);
+    }
+    .range strong{ color: var(--text); }
+  </style>
+</head>
+
+<body>
+  <main class="container">
+    <header class="header">
+      <div class="topbar">
+        <a class="home-btn" href="../../index.html">Home</a>
+        <a class="ghost-btn" href="./index.html">Back to Tracker</a>
+      </div>
+      <h1>BP Tracker — Info</h1>
+      <p class="subtitle">What the numbers mean + healthy ranges + how to lower BP</p>
+    </header>
+
+    <section class="card">
+      <h2>Quick Definitions</h2>
+
+      <details open>
+        <summary>What is Systolic, Diastolic, Pulse?</summary>
+        <p><strong>Systolic (top number)</strong> is the pressure in your arteries when your heart beats.</p>
+        <p><strong>Diastolic (bottom number)</strong> is the pressure when your heart rests between beats.</p>
+        <p><strong>Pulse</strong> is your heart rate (beats per minute).</p>
+      </details>
+
+      <details>
+        <summary>Healthy ranges (general guidance)</summary>
+        <p>Targets vary by age/conditions and your clinician’s advice. This is a general guide for adults:</p>
+
+        <div class="range">
+          <div class="row">
+            <span class="tag">Normal</span>
+            <strong>&lt;120 systolic</strong> and <strong>&lt;80 diastolic</strong>
+          </div>
+          <div class="row">
+            <span class="tag">Elevated</span>
+            <strong>120–129 systolic</strong> and <strong>&lt;80 diastolic</strong>
+          </div>
+          <div class="row">
+            <span class="tag">High (Stage 1)</span>
+            <strong>130–139 systolic</strong> or <strong>80–89 diastolic</strong>
+          </div>
+          <div class="row">
+            <span class="tag">High (Stage 2)</span>
+            <strong>≥140 systolic</strong> or <strong>≥90 diastolic</strong>
+          </div>
+          <div class="row">
+            <span class="tag">Urgent</span>
+            <strong>≥180 systolic</strong> and/or <strong>≥120 diastolic</strong>
+            <p style="margin-top:8px;">If you feel unwell (chest pain, severe headache, shortness of breath, weakness, vision changes), seek urgent care.</p>
+          </div>
+        </div>
+      </details>
+    </section>
+
+    <section class="card">
+      <h2>How to take BP correctly</h2>
+
+      <details open>
+        <summary>Before you measure</summary>
+        <ul>
+          <li>Rest quietly for <strong>5 minutes</strong> beforehand.</li>
+          <li>Avoid <strong>caffeine, smoking, exercise</strong> for ~30 minutes beforehand.</li>
+          <li>Empty your bladder.</li>
+          <li>Use the correct cuff size (too small = higher readings).</li>
+        </ul>
+      </details>
+
+      <details>
+        <summary>During the measurement</summary>
+        <ul>
+          <li>Sit with back supported, feet flat, legs uncrossed.</li>
+          <li>Arm supported at heart level.</li>
+          <li>Place cuff on bare upper arm (not over clothing).</li>
+          <li>Don’t talk or move while measuring.</li>
+        </ul>
+      </details>
+
+      <details>
+        <summary>3 readings rule (what your app does)</summary>
+        <ul>
+          <li>Take <strong>3 readings</strong>, about <strong>1 minute apart</strong>.</li>
+          <li>Record all three and use the <strong>average</strong> for trend tracking.</li>
+          <li>Try to measure at the <strong>same time daily</strong> for consistency.</li>
+        </ul>
+      </details>
+    </section>
+
+    <section class="card">
+      <h2>How to lower BP</h2>
+
+      <details open>
+        <summary>High-impact habits</summary>
+        <ul>
+          <li><strong>Reduce salt</strong> (especially processed foods).</li>
+          <li><strong>Walk / cardio</strong> most days (even 20–30 min).</li>
+          <li><strong>Lose a little weight</strong> if needed (even small changes help).</li>
+          <li><strong>Sleep</strong> 7–9 hours; treat snoring/sleep apnea if relevant.</li>
+          <li><strong>Limit alcohol</strong>; stop smoking.</li>
+          <li>Manage stress (breathing, routines, consistent exercise).</li>
+        </ul>
+      </details>
+
+      <details>
+        <summary>Foods that support lower BP</summary>
+        <ul>
+          <li>Vegetables (leafy greens), fruits (berries, bananas), beans/legumes.</li>
+          <li>Oats, whole grains, nuts/seeds (watch salt).</li>
+          <li>Low-fat dairy or calcium-rich alternatives.</li>
+          <li>Fish (omega-3), olive oil, unsalted nuts.</li>
+          <li>Potassium-rich foods can help (unless you’ve been told to limit potassium).</li>
+        </ul>
+      </details>
+
+      <details>
+        <summary>When to talk to a clinician</summary>
+        <ul>
+          <li>If your average readings are consistently in the high ranges.</li>
+          <li>If you have symptoms (chest pain, severe headache, breathlessness, weakness, vision changes).</li>
+          <li>If your device or technique might be off — bring your monitor to check accuracy.</li>
+        </ul>
+      </details>
+    </section>
+  </main>
+</body>
+</html>

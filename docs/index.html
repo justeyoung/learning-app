@@ -1,39 +1,32 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Happy Learning Together</title>
 
-  <!-- Main site styles (dark mode lives in here) -->
-  <link rel="stylesheet" href="./assets/css/style.css" />
-
-  <!-- PWA -->
-  <link rel="manifest" href="./manifest.json" />
-  <meta name="theme-color" content="#0b0f14" />
+  <!-- Use your existing dark theme file (now in /assets/css) -->
+  <link rel="stylesheet" href="./assets/css/style.css">
 </head>
-
 <body>
-  <main class="home">
-    <h1>Happy Learning Together</h1>
-    <p class="sub">Choose an app:</p>
 
-<div class="menu">
-  <a href="./apps/counter/counter.html"><button>Exercise Counter</button></a>
-  <a href="./apps/interval/interval.html"><button>Interval Walking</button></a>
-  <a href="./apps/core/core.html"><button>Core Exercise Timer</button></a>
-  <a href="./apps/axis/index.html"><button>Axis</button></a>
-  <a href="./apps/kegal/index.html"><button>Kegel Timer</button></a>
-</div>
-  </main>
+  <h1>Home Page</h1>
 
-  <!-- Register service worker (if your style.css or other pages already do this, you can remove this block) -->
+  <div class="menu">
+    <a href="./apps/counter/counter.html"><button>Exercise Counter</button></a>
+    <a href="./apps/interval/interval.html"><button>Interval Walking</button></a>
+    <a href="./apps/core/core.html"><button>Core Exercise Timer</button></a>
+    <a href="./apps/axis/index.html"><button>Axis</button></a>
+    <a href="./apps/kegal/index.html"><button>Kegel Timer</button></a>
+    <a href="./apps/bp-tracker/index.html"><button>BP Tracker</button></a>
+  </div>
+
   <script>
+    // Register service worker (safe)
     if ("serviceWorker" in navigator) {
-      window.addEventListener("load", () => {
-        navigator.serviceWorker.register("./service-worker.js").catch(() => {});
-      });
+      navigator.serviceWorker.register("./service-worker.js").catch(()=>{});
     }
   </script>
+
 </body>
 </html>
