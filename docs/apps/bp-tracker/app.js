@@ -4,8 +4,9 @@
 
 // ✅ Put your deployed Apps Script /exec URL here
 const ENDPOINT =
-  "https://script.googleusercontent.com/macros/echo?user_content_key=AY5xjrSdaVWMI1JMbUtrkSJ3NyKGyG-lpCbwuJMju-a-GYvTNgD27D4MoEFXhW1VPvcWwx2gOEo0v8Lddeb5BWMvMzbE6KRBj-Pmlw5asCD2Hd9ovtW1wd-C4VvzXL1IJT5GLDQ18MIbj9DI_PaBvnHJM_6ZLWkS2lH4kObAX9n-We4nPxp6NQUR0YOKiZcV1SNoJGk8i0QmDqjOQd3Am6qgap_w0C1aMTQHAt74qJomwmMjFqbvyFUy53c6XHOa13S_lMdexmSUbzJYWBtENhuqwb9EhVcWAg&lib=M5wIe-of_UKsxjMJphVDUFzl8s4yoQxnq"
-// ---- DOM helpers ----
+ "https://script.google.com/macros/s/AKfycbx0cyqzKTaV3NIlZOfFxVKMHa5uWlebH-znDcJbbhPLlC4D0_3CSVOL0Ific-CLKtir/exec"
+
+ // ---- DOM helpers ----
 const $ = (id) => document.getElementById(id);
 
 const inputs = {
@@ -120,7 +121,7 @@ console.log("Parsed JSON:", json);
 }
 
 async function getRows(limit = 365) {
-  const url = `${ENDPOINT}?limit=${encodeURIComponent(String(limit))}`;
+  const url = `${ENDPOINT}?list=daily&n=${encodeURIComponent(String(Math.min(50, limit)))}`;
   const res = await fetch(url, { method: "GET" });
   const json = await res.json();
   if (!json.ok) throw new Error(json.error || "Failed to load rows");
