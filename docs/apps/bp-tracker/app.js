@@ -1,9 +1,10 @@
 // BP Tracker — app.js (no libraries)
+// Writes BOTH: raw (3 readings) + daily (averages)
+// Assumes your Apps Script requires: type = "raw" | "daily" | "iso_sessions"
 
 // ✅ Put your deployed Apps Script /exec URL here
 const ENDPOINT =
-  "https://script.google.com/macros/s/AKfycbx0cyqzKTaV3NIlZOfFxVKMHa5uWlebH-znDcJbbhPLlC4D0_3CSVOL0Ific-CLKtir/exec";
-
+  "https://script.googleusercontent.com/macros/echo?user_content_key=AY5xjrSdaVWMI1JMbUtrkSJ3NyKGyG-lpCbwuJMju-a-GYvTNgD27D4MoEFXhW1VPvcWwx2gOEo0v8Lddeb5BWMvMzbE6KRBj-Pmlw5asCD2Hd9ovtW1wd-C4VvzXL1IJT5GLDQ18MIbj9DI_PaBvnHJM_6ZLWkS2lH4kObAX9n-We4nPxp6NQUR0YOKiZcV1SNoJGk8i0QmDqjOQd3Am6qgap_w0C1aMTQHAt74qJomwmMjFqbvyFUy53c6XHOa13S_lMdexmSUbzJYWBtENhuqwb9EhVcWAg&lib=M5wIe-of_UKsxjMJphVDUFzl8s4yoQxnq"
 // ---- DOM helpers ----
 const $ = (id) => document.getElementById(id);
 
@@ -88,8 +89,11 @@ Object.values(inputs).forEach((el) => {
 });
 
 // ---- API calls ----
+
 async function postRow(payload) {
   // Apps Script likes text/plain JSON
+  console.log("POST payload =>", payload);
+  setStatus("Sending type=" + payload.type, "bad");
   const res = await fetch(ENDPOINT, {
     method: "POST",
     headers: { "Content-Type": "text/plain;charset=utf-8" },
@@ -97,8 +101,14 @@ async function postRow(payload) {
   });
 
   const text = await res.text();
+  console.log("HTTP status:", res.status);
+  console.log("Raw response text:", text);
+
   let json;
-  try { json = JSON.parse(text); } catch { json = { ok: false, error: text }; }
+  try { json = JSON.parse(text); }
+  catch { json = { ok: false, error: text }; }
+
+console.log("Parsed JSON:", json);
 
   if (!res.ok) {
     throw new Error(`HTTP ${res.status}: ${json.error || text}`);
@@ -119,7 +129,7 @@ async function getRows(limit = 365) {
 
 // ---- chart (weekly last 7 days) ----
 function parseRow(r) {
-  // expects headers: date, time, sys_avg, dia_avg, pulse_avg ...
+  // expects daily rows containing: date, sys_avg, dia_avg
   const date = String(r.date || "").trim(); // yyyy-mm-dd
   const sys = Number(r.sys_avg);
   const dia = Number(r.dia_avg);
@@ -130,7 +140,7 @@ function parseRow(r) {
 function lastNDates(n) {
   const out = [];
   const d = new Date();
-  d.setHours(0,0,0,0);
+  d.setHours(0, 0, 0, 0);
   for (let i = n - 1; i >= 0; i--) {
     const x = new Date(d);
     x.setDate(d.getDate() - i);
@@ -143,8 +153,6 @@ function lastNDates(n) {
 }
 
 function drawChart(points) {
-  // points: [{label, sys, dia}] length 7 (some may be null)
-  // simple responsive canvas: match CSS width by using devicePixelRatio
   const dpr = window.devicePixelRatio || 1;
   const rect = canvas.getBoundingClientRect();
   const w = Math.max(320, Math.floor(rect.width));
@@ -153,14 +161,12 @@ function drawChart(points) {
   canvas.height = Math.floor(h * dpr);
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-  // background
   ctx.clearRect(0, 0, w, h);
 
   const padL = 44, padR = 12, padT = 18, padB = 32;
   const plotW = w - padL - padR;
   const plotH = h - padT - padB;
 
-  // collect min/max from available values
   const vals = [];
   for (const p of points) {
     if (Number.isFinite(p.sys)) vals.push(p.sys);
@@ -178,7 +184,6 @@ function drawChart(points) {
     return padT + (1 - t) * plotH;
   }
 
-  // grid lines
   ctx.strokeStyle = "rgba(170,178,192,0.18)";
   ctx.lineWidth = 1;
   const gridCount = 4;
@@ -190,7 +195,6 @@ function drawChart(points) {
     ctx.stroke();
   }
 
-  // y labels
   ctx.fillStyle = "rgba(170,178,192,0.85)";
   ctx.font = "12px system-ui, -apple-system, Segoe UI, Roboto, Arial";
   ctx.textAlign = "right";
@@ -201,7 +205,6 @@ function drawChart(points) {
     ctx.fillText(String(v), padL - 8, gy);
   }
 
-  // x labels (MM-DD)
   ctx.textAlign = "center";
   ctx.textBaseline = "top";
   for (let i = 0; i < points.length; i++) {
@@ -209,7 +212,6 @@ function drawChart(points) {
     ctx.fillText(lab, x(i), padT + plotH + 10);
   }
 
-  // line draw helper
   function drawLine(key, stroke) {
     ctx.strokeStyle = stroke;
     ctx.lineWidth = 2;
@@ -225,7 +227,6 @@ function drawChart(points) {
     }
     ctx.stroke();
 
-    // dots
     ctx.fillStyle = stroke;
     for (let i = 0; i < points.length; i++) {
       const v = points[i][key];
@@ -236,10 +237,9 @@ function drawChart(points) {
     }
   }
 
-  drawLine("sys", "rgba(96,165,250,0.95)"); // systolic
-  drawLine("dia", "rgba(244,114,182,0.95)"); // diastolic
+  drawLine("sys", "rgba(96,165,250,0.95)");
+  drawLine("dia", "rgba(244,114,182,0.95)");
 
-  // legend
   ctx.textAlign = "left";
   ctx.textBaseline = "alphabetic";
   ctx.fillStyle = "rgba(230,232,238,0.9)";
@@ -256,21 +256,18 @@ function drawChart(points) {
 async function refreshChart() {
   setStatus("Loading chart…");
   try {
-    const rows = await getRows(800); // plenty
+    const rows = await getRows(800);
     const parsed = rows.map(parseRow).filter(Boolean);
 
     const last7 = lastNDates(7);
-    // group by date → take last entry of the day (or you can average days later)
+
+    // take latest entry per date
     const byDate = new Map();
     for (const r of parsed) byDate.set(r.date, r);
 
     const points = last7.map((d) => {
       const row = byDate.get(d);
-      return {
-        label: d,
-        sys: row ? row.sys : null,
-        dia: row ? row.dia : null,
-      };
+      return { label: d, sys: row ? row.sys : null, dia: row ? row.dia : null };
     });
 
     drawChart(points);
@@ -288,38 +285,59 @@ saveBtn.addEventListener("click", async () => {
   const s2 = num(inputs.sys2.value), d2 = num(inputs.dia2.value), p2 = num(inputs.pul2.value);
   const s3 = num(inputs.sys3.value), d3 = num(inputs.dia3.value), p3 = num(inputs.pul3.value);
 
-  if (![s1,d1,p1,s2,d2,p2,s3,d3,p3].every((x) => typeof x === "number")) {
+  if (![s1, d1, p1, s2, d2, p2, s3, d3, p3].every((x) => typeof x === "number")) {
     setStatus("Please fill all 9 numbers before saving.", "bad");
     return;
   }
+  if (sysAvg === null || diaAvg === null || pulAvg === null) {
+    setStatus("Averages missing—please complete all 3 readings.", "bad");
+    return;
+  }
 
-  const payload = {
-    timestamp: new Date().toISOString(),
-    date: todayYMD(),
-    time: nowHHMM(),
+  const ts = new Date().toISOString();
+  const date = todayYMD();
+  const time = nowHHMM();
+
+  // 1) RAW (3 readings)
+  const rawPayload = {
+    type: "raw",
+    timestamp: ts,
+    date,
+    time,
 
     systolic1: s1, diastolic1: d1, pulse1: p1,
     systolic2: s2, diastolic2: d2, pulse2: p2,
     systolic3: s3, diastolic3: d3, pulse3: p3,
+  };
+
+  // 2) DAILY (averages)
+  const dailyPayload = {
+    type: "daily",
+    timestamp: ts,
+    date,
+    time,
 
     sys_avg: sysAvg,
     dia_avg: diaAvg,
     pulse_avg: pulAvg,
-
     notes: "",
   };
 
   saveBtn.disabled = true;
+  refreshBtn.disabled = true;
   setStatus("Saving…");
 
   try {
-    await postRow(payload);
-    setStatus("Saved ✅", "ok");
+    await postRow(rawPayload);
+    await postRow(dailyPayload);
+
+    setStatus("Saved to raw + daily ✅", "ok");
     await refreshChart();
   } catch (e) {
     setStatus(`Save failed: ${e.message}`, "bad");
   } finally {
     saveBtn.disabled = false;
+    refreshBtn.disabled = false;
   }
 });
 
