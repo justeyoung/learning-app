@@ -1,7 +1,7 @@
 // service-worker.js — offline cache for /docs site
 // Bump CACHE_NAME whenever you change file paths or add/remove assets.
 
-const CACHE_NAME = "exercise-app-v11";
+const CACHE_NAME = "exercise-app-v12";
 
 const ASSETS_TO_CACHE = [
   "./",
