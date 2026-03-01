@@ -189,7 +189,7 @@ async function refreshTrendTable() {
     const rows = await getRowsDaily(50);
 
     const parsed = rows.map((r) => {
-      const date = String(r.date || "").trim();
+      const date = String(r.date || "").slice(0, 10); // normalize to YYYY-MM-DD
       const sys = Number(r.sys_avg);
       const dia = Number(r.dia_avg);
       const pul = Number(r.pulse_avg);
