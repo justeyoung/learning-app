@@ -1,12 +1,12 @@
 // BP Tracker — app.js (no libraries)
-// Writes BOTH: raw (3 readings) + daily (averages)
-// Assumes your Apps Script requires: type = "raw" | "daily" | "iso_sessions"
+// Morning: saves to raw (3 readings)
+// Evening: saves to evening (2 readings + averages + notes)
+// Chart: reads daily via ?list=daily&n=...
 
-// ✅ Put your deployed Apps Script /exec URL here
 const ENDPOINT =
- "https://script.google.com/macros/s/AKfycbx0cyqzKTaV3NIlZOfFxVKMHa5uWlebH-znDcJbbhPLlC4D0_3CSVOL0Ific-CLKtir/exec"
+  "https://script.google.com/macros/s/AKfycbx0cyqzKTaV3NIlZOfFxVKMHa5uWlebH-znDcJbbhPLlC4D0_3CSVOL0Ific-CLKtir/exec";
 
- // ---- DOM helpers ----
+// ---- DOM helpers ----
 const $ = (id) => document.getElementById(id);
 
 const inputs = {
@@ -28,6 +28,12 @@ const statusMsg = $("statusMsg");
 const canvas = $("chart");
 const ctx = canvas.getContext("2d");
 
+const modeMorningBtn = $("modeMorningBtn");
+const modeEveningBtn = $("modeEveningBtn");
+const triplet3 = $("triplet3");
+
+let MODE = "morning"; // "morning" | "evening"
+
 // ---- utils ----
 function num(v) {
   const n = Number(v);
@@ -35,7 +41,6 @@ function num(v) {
 }
 
 function todayYMD() {
-  // yyyy-mm-dd in local time
   const d = new Date();
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, "0");
@@ -57,6 +62,13 @@ function mean3(a, b, c) {
   return Math.round((s / 3) * 10) / 10; // 1dp
 }
 
+function mean2(a, b) {
+  const arr = [a, b].filter((x) => typeof x === "number");
+  if (arr.length !== 2) return null;
+  const s = arr[0] + arr[1];
+  return Math.round((s / 2) * 10) / 10; // 1dp
+}
+
 function setStatus(text, kind = "muted") {
   statusMsg.textContent = text || "";
   statusMsg.style.color =
@@ -65,15 +77,40 @@ function setStatus(text, kind = "muted") {
     "#aab2c0";
 }
 
+function setMode(mode) {
+  MODE = mode;
+
+  if (MODE === "evening") {
+    modeEveningBtn.classList.add("primary");
+    modeMorningBtn.classList.remove("primary");
+    if (triplet3) triplet3.style.display = "none";
+  } else {
+    modeMorningBtn.classList.add("primary");
+    modeEveningBtn.classList.remove("primary");
+    if (triplet3) triplet3.style.display = "";
+  }
+
+  computeAverages();
+  setStatus("");
+}
+
 // ---- averages ----
 function computeAverages() {
   const s1 = num(inputs.sys1.value), d1 = num(inputs.dia1.value), p1 = num(inputs.pul1.value);
   const s2 = num(inputs.sys2.value), d2 = num(inputs.dia2.value), p2 = num(inputs.pul2.value);
   const s3 = num(inputs.sys3.value), d3 = num(inputs.dia3.value), p3 = num(inputs.pul3.value);
 
-  const sysAvg = mean3(s1, s2, s3);
-  const diaAvg = mean3(d1, d2, d3);
-  const pulAvg = mean3(p1, p2, p3);
+  let sysAvg, diaAvg, pulAvg;
+
+  if (MODE === "evening") {
+    sysAvg = mean2(s1, s2);
+    diaAvg = mean2(d1, d2);
+    pulAvg = mean2(p1, p2);
+  } else {
+    sysAvg = mean3(s1, s2, s3);
+    diaAvg = mean3(d1, d2, d3);
+    pulAvg = mean3(p1, p2, p3);
+  }
 
   avgEls.sys.textContent = sysAvg ?? "—";
   avgEls.dia.textContent = diaAvg ?? "—";
@@ -90,11 +127,7 @@ Object.values(inputs).forEach((el) => {
 });
 
 // ---- API calls ----
-
 async function postRow(payload) {
-  // Apps Script likes text/plain JSON
-  console.log("POST payload =>", payload);
-  setStatus("Sending type=" + payload.type, "bad");
   const res = await fetch(ENDPOINT, {
     method: "POST",
     headers: { "Content-Type": "text/plain;charset=utf-8" },
@@ -102,26 +135,18 @@ async function postRow(payload) {
   });
 
   const text = await res.text();
-  console.log("HTTP status:", res.status);
-  console.log("Raw response text:", text);
 
   let json;
   try { json = JSON.parse(text); }
   catch { json = { ok: false, error: text }; }
 
-console.log("Parsed JSON:", json);
-
-  if (!res.ok) {
-    throw new Error(`HTTP ${res.status}: ${json.error || text}`);
-  }
-  if (!json.ok) {
-    throw new Error(json.error || "Unknown error");
-  }
+  if (!res.ok) throw new Error(`HTTP ${res.status}: ${json.error || text}`);
+  if (!json.ok) throw new Error(json.error || "Unknown error");
   return json;
 }
 
-async function getRows(limit = 365) {
-  const url = `${ENDPOINT}?list=daily&n=${encodeURIComponent(String(Math.min(50, limit)))}`;
+async function getRowsDaily(n = 50) {
+  const url = `${ENDPOINT}?list=daily&n=${encodeURIComponent(String(Math.max(1, Math.min(50, n))))}`;
   const res = await fetch(url, { method: "GET" });
   const json = await res.json();
   if (!json.ok) throw new Error(json.error || "Failed to load rows");
@@ -130,7 +155,6 @@ async function getRows(limit = 365) {
 
 // ---- chart (weekly last 7 days) ----
 function parseRow(r) {
-  // expects daily rows containing: date, sys_avg, dia_avg
   const date = String(r.date || "").trim(); // yyyy-mm-dd
   const sys = Number(r.sys_avg);
   const dia = Number(r.dia_avg);
@@ -209,7 +233,7 @@ function drawChart(points) {
   ctx.textAlign = "center";
   ctx.textBaseline = "top";
   for (let i = 0; i < points.length; i++) {
-    const lab = points[i].label.slice(5); // mm-dd
+    const lab = points[i].label.slice(5);
     ctx.fillText(lab, x(i), padT + plotH + 10);
   }
 
@@ -257,12 +281,11 @@ function drawChart(points) {
 async function refreshChart() {
   setStatus("Loading chart…");
   try {
-    const rows = await getRows(800);
+    const rows = await getRowsDaily(50);
     const parsed = rows.map(parseRow).filter(Boolean);
 
     const last7 = lastNDates(7);
 
-    // take latest entry per date
     const byDate = new Map();
     for (const r of parsed) byDate.set(r.date, r);
 
@@ -278,7 +301,7 @@ async function refreshChart() {
   }
 }
 
-// ---- Save flow ----
+// ---- save flow ----
 saveBtn.addEventListener("click", async () => {
   const { sysAvg, diaAvg, pulAvg } = computeAverages();
 
@@ -286,12 +309,16 @@ saveBtn.addEventListener("click", async () => {
   const s2 = num(inputs.sys2.value), d2 = num(inputs.dia2.value), p2 = num(inputs.pul2.value);
   const s3 = num(inputs.sys3.value), d3 = num(inputs.dia3.value), p3 = num(inputs.pul3.value);
 
-  if (![s1, d1, p1, s2, d2, p2, s3, d3, p3].every((x) => typeof x === "number")) {
-    setStatus("Please fill all 9 numbers before saving.", "bad");
+  const required = (MODE === "evening")
+    ? [s1, d1, p1, s2, d2, p2]
+    : [s1, d1, p1, s2, d2, p2, s3, d3, p3];
+
+  if (!required.every((x) => typeof x === "number")) {
+    setStatus(`Please fill all ${MODE === "evening" ? "6" : "9"} numbers before saving.`, "bad");
     return;
   }
   if (sysAvg === null || diaAvg === null || pulAvg === null) {
-    setStatus("Averages missing—please complete all 3 readings.", "bad");
+    setStatus("Averages missing—please complete the readings.", "bad");
     return;
   }
 
@@ -299,40 +326,40 @@ saveBtn.addEventListener("click", async () => {
   const date = todayYMD();
   const time = nowHHMM();
 
-  // 1) RAW (3 readings)
-  const rawPayload = {
-    type: "raw",
-    timestamp: ts,
-    date,
-    time,
+  let payload;
 
-    systolic1: s1, diastolic1: d1, pulse1: p1,
-    systolic2: s2, diastolic2: d2, pulse2: p2,
-    systolic3: s3, diastolic3: d3, pulse3: p3,
-  };
-
-  // 2) DAILY (averages)
-  const dailyPayload = {
-    type: "daily",
-    timestamp: ts,
-    date,
-    time,
-
-    sys_avg: sysAvg,
-    dia_avg: diaAvg,
-    pulse_avg: pulAvg,
-    notes: "",
-  };
+  if (MODE === "evening") {
+    payload = {
+      type: "evening",
+      timestamp: ts,
+      date,
+      time,
+      systolic1: s1, diastolic1: d1, pulse1: p1,
+      systolic2: s2, diastolic2: d2, pulse2: p2,
+      sys_avg: sysAvg,
+      dia_avg: diaAvg,
+      pulse_avg: pulAvg,
+      notes: ""
+    };
+  } else {
+    payload = {
+      type: "raw",
+      timestamp: ts,
+      date,
+      time,
+      systolic1: s1, diastolic1: d1, pulse1: p1,
+      systolic2: s2, diastolic2: d2, pulse2: p2,
+      systolic3: s3, diastolic3: d3, pulse3: p3
+    };
+  }
 
   saveBtn.disabled = true;
   refreshBtn.disabled = true;
   setStatus("Saving…");
 
   try {
-    await postRow(rawPayload);
-    await postRow(dailyPayload);
-
-    setStatus("Saved to raw + daily ✅", "ok");
+    await postRow(payload);
+    setStatus(`Saved (${MODE}) ✅`, "ok");
     await refreshChart();
   } catch (e) {
     setStatus(`Save failed: ${e.message}`, "bad");
@@ -344,7 +371,11 @@ saveBtn.addEventListener("click", async () => {
 
 refreshBtn.addEventListener("click", refreshChart);
 
+modeMorningBtn.addEventListener("click", () => setMode("morning"));
+modeEveningBtn.addEventListener("click", () => setMode("evening"));
+
 // ---- init ----
+setMode("morning");
 computeAverages();
 refreshChart();
 window.addEventListener("resize", () => refreshChart());

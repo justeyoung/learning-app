@@ -1,3 +1,4 @@
+<!-- docs/apps/bp-tracker/index.html -->
 <!doctype html>
 <html lang="en">
 <head>
@@ -13,30 +14,41 @@
         <a class="home-btn" href="../../index.html">Home</a>
         <a class="ghost-btn" href="./info.html">Info</a>
       </div>
+
       <h1>BP Tracker</h1>
-      <p class="subtitle">Enter 3 readings → automatic average → save to Google Sheet</p>
+      <p class="subtitle">Morning = 3 readings · Evening = 2 readings</p>
     </header>
 
     <section class="card">
-      <h2>Today's Entry</h2>
+      <div class="card-head">
+        <h2>Entry</h2>
+
+        <div class="mode-toggle" role="group" aria-label="Mode toggle">
+          <button id="modeMorningBtn" class="toggle-btn primary" type="button">Morning</button>
+          <button id="modeEveningBtn" class="toggle-btn" type="button">Evening</button>
+        </div>
+      </div>
 
       <div class="grid3">
-        <div class="triplet">
-          <label>Systolic <input id="sys1" type="number" value="120"></label>
-          <label>Diastolic <input id="dia1" type="number" value="80"></label>
-          <label>Pulse <input id="pul1" type="number" value="70"></label>
+        <div class="triplet" id="triplet1">
+          <div class="triplet-title">Reading 1</div>
+          <label>Systolic <input id="sys1" type="number" inputmode="numeric" value="120"></label>
+          <label>Diastolic <input id="dia1" type="number" inputmode="numeric" value="80"></label>
+          <label>Pulse <input id="pul1" type="number" inputmode="numeric" value="70"></label>
         </div>
 
-        <div class="triplet">
-          <label>Systolic <input id="sys2" type="number" value="120"></label>
-          <label>Diastolic <input id="dia2" type="number" value="80"></label>
-          <label>Pulse <input id="pul2" type="number" value="70"></label>
+        <div class="triplet" id="triplet2">
+          <div class="triplet-title">Reading 2</div>
+          <label>Systolic <input id="sys2" type="number" inputmode="numeric" value="120"></label>
+          <label>Diastolic <input id="dia2" type="number" inputmode="numeric" value="80"></label>
+          <label>Pulse <input id="pul2" type="number" inputmode="numeric" value="70"></label>
         </div>
 
-        <div class="triplet">
-          <label>Systolic <input id="sys3" type="number" value="120"></label>
-          <label>Diastolic <input id="dia3" type="number" value="80"></label>
-          <label>Pulse <input id="pul3" type="number" value="70"></label>
+        <div class="triplet" id="triplet3">
+          <div class="triplet-title">Reading 3</div>
+          <label>Systolic <input id="sys3" type="number" inputmode="numeric" value="120"></label>
+          <label>Diastolic <input id="dia3" type="number" inputmode="numeric" value="80"></label>
+          <label>Pulse <input id="pul3" type="number" inputmode="numeric" value="70"></label>
         </div>
       </div>
 
@@ -47,8 +59,8 @@
       </div>
 
       <div class="buttons">
-        <button id="saveBtn" class="primary">Save to Google Sheet</button>
-        <button id="refreshBtn">Refresh Data</button>
+        <button id="saveBtn" class="primary" type="button">Save to Google Sheet</button>
+        <button id="refreshBtn" type="button">Refresh Data</button>
       </div>
 
       <p id="statusMsg" class="hint"></p>
