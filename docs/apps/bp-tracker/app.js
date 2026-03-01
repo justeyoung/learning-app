@@ -1,7 +1,7 @@
 // BP Tracker — app.js (no libraries)
 // Morning: saves to raw (3 readings)
 // Evening: saves to evening (2 readings + averages + notes)
-// Chart: reads daily via ?list=daily&n=...
+// Trend table: reads daily via ?list=daily&n=...
 
 const ENDPOINT =
   "https://script.google.com/macros/s/AKfycbx0cyqzKTaV3NIlZOfFxVKMHa5uWlebH-znDcJbbhPLlC4D0_3CSVOL0Ific-CLKtir/exec";
@@ -83,12 +83,12 @@ function setMode(mode) {
   MODE = mode;
 
   if (MODE === "evening") {
-    modeEveningBtn.classList.add("primary");
-    modeMorningBtn.classList.remove("primary");
+    modeEveningBtn?.classList.add("primary");
+    modeMorningBtn?.classList.remove("primary");
     if (triplet3) triplet3.style.display = "none";
   } else {
-    modeMorningBtn.classList.add("primary");
-    modeEveningBtn.classList.remove("primary");
+    modeMorningBtn?.classList.add("primary");
+    modeEveningBtn?.classList.remove("primary");
     if (triplet3) triplet3.style.display = "";
   }
 
@@ -98,9 +98,9 @@ function setMode(mode) {
 
 // ---- averages ----
 function computeAverages() {
-  const s1 = num(inputs.sys1.value), d1 = num(inputs.dia1.value), p1 = num(inputs.pul1.value);
-  const s2 = num(inputs.sys2.value), d2 = num(inputs.dia2.value), p2 = num(inputs.pul2.value);
-  const s3 = num(inputs.sys3.value), d3 = num(inputs.dia3.value), p3 = num(inputs.pul3.value);
+  const s1 = num(inputs.sys1?.value), d1 = num(inputs.dia1?.value), p1 = num(inputs.pul1?.value);
+  const s2 = num(inputs.sys2?.value), d2 = num(inputs.dia2?.value), p2 = num(inputs.pul2?.value);
+  const s3 = num(inputs.sys3?.value), d3 = num(inputs.dia3?.value), p3 = num(inputs.pul3?.value);
 
   let sysAvg, diaAvg, pulAvg;
 
@@ -114,14 +114,15 @@ function computeAverages() {
     pulAvg = mean3(p1, p2, p3);
   }
 
-  avgEls.sys.textContent = sysAvg ?? "—";
-  avgEls.dia.textContent = diaAvg ?? "—";
-  avgEls.pul.textContent = pulAvg ?? "—";
+  if (avgEls.sys) avgEls.sys.textContent = sysAvg ?? "—";
+  if (avgEls.dia) avgEls.dia.textContent = diaAvg ?? "—";
+  if (avgEls.pul) avgEls.pul.textContent = pulAvg ?? "—";
 
   return { sysAvg, diaAvg, pulAvg };
 }
 
 Object.values(inputs).forEach((el) => {
+  if (!el) return;
   el.addEventListener("input", () => {
     computeAverages();
     setStatus("");
@@ -155,15 +156,7 @@ async function getRowsDaily(n = 50) {
   return json.rows || [];
 }
 
-// ---- chart (weekly last 7 days) ----
-function parseRow(r) {
-  const date = String(r.date || "").trim(); // yyyy-mm-dd
-  const sys = Number(r.sys_avg);
-  const dia = Number(r.dia_avg);
-  if (!date || !Number.isFinite(sys) || !Number.isFinite(dia)) return null;
-  return { date, sys, dia };
-}
-
+// ---- trend table (last 7 days) ----
 function lastNDates(n) {
   const out = [];
   const d = new Date();
@@ -178,7 +171,6 @@ function lastNDates(n) {
   }
   return out;
 }
-
 
 function fmt(v) {
   return Number.isFinite(v) ? String(v) : "—";
@@ -195,6 +187,7 @@ async function refreshTrendTable() {
   setStatus("Loading last 7 days…");
   try {
     const rows = await getRowsDaily(50);
+
     const parsed = rows.map((r) => {
       const date = String(r.date || "").trim();
       const sys = Number(r.sys_avg);
@@ -206,12 +199,12 @@ async function refreshTrendTable() {
 
     const last7 = lastNDates(7);
 
-    // Latest entry per date
+    // latest entry per date
     const byDate = new Map();
     for (const r of parsed) byDate.set(r.date, r);
 
-    // Build table rows
-    trendBody.innerHTML = "";
+    if (trendBody) trendBody.innerHTML = "";
+
     const sysVals = [];
     const diaVals = [];
     const pulVals = [];
@@ -226,23 +219,25 @@ async function refreshTrendTable() {
       if (Number.isFinite(dia)) diaVals.push(dia);
       if (Number.isFinite(pul)) pulVals.push(pul);
 
-      const tr = document.createElement("tr");
-      tr.innerHTML = `
-        <td>${d}</td>
-        <td>${fmt(sys)}</td>
-        <td>${fmt(dia)}</td>
-        <td>${fmt(pul)}</td>
-      `;
-      trendBody.appendChild(tr);
+      if (trendBody) {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${d}</td>
+          <td>${fmt(sys)}</td>
+          <td>${fmt(dia)}</td>
+          <td>${fmt(pul)}</td>
+        `;
+        trendBody.appendChild(tr);
+      }
     }
 
     const avgSys = mean(sysVals);
     const avgDia = mean(diaVals);
     const avgPul = mean(pulVals);
 
-    avg7SysEl.textContent = avgSys ?? "—";
-    avg7DiaEl.textContent = avgDia ?? "—";
-    avg7PulEl.textContent = avgPul ?? "—";
+    if (avg7SysEl) avg7SysEl.textContent = avgSys ?? "—";
+    if (avg7DiaEl) avg7DiaEl.textContent = avgDia ?? "—";
+    if (avg7PulEl) avg7PulEl.textContent = avgPul ?? "—";
 
     setStatus("");
   } catch (e) {
@@ -251,12 +246,12 @@ async function refreshTrendTable() {
 }
 
 // ---- save flow ----
-saveBtn.addEventListener("click", async () => {
+saveBtn?.addEventListener("click", async () => {
   const { sysAvg, diaAvg, pulAvg } = computeAverages();
 
-  const s1 = num(inputs.sys1.value), d1 = num(inputs.dia1.value), p1 = num(inputs.pul1.value);
-  const s2 = num(inputs.sys2.value), d2 = num(inputs.dia2.value), p2 = num(inputs.pul2.value);
-  const s3 = num(inputs.sys3.value), d3 = num(inputs.dia3.value), p3 = num(inputs.pul3.value);
+  const s1 = num(inputs.sys1?.value), d1 = num(inputs.dia1?.value), p1 = num(inputs.pul1?.value);
+  const s2 = num(inputs.sys2?.value), d2 = num(inputs.dia2?.value), p2 = num(inputs.pul2?.value);
+  const s3 = num(inputs.sys3?.value), d3 = num(inputs.dia3?.value), p3 = num(inputs.pul3?.value);
 
   const required = (MODE === "evening")
     ? [s1, d1, p1, s2, d2, p2]
@@ -303,32 +298,37 @@ saveBtn.addEventListener("click", async () => {
   }
 
   saveBtn.disabled = true;
-  refreshBtn.disabled = true;
+  refreshBtn && (refreshBtn.disabled = true);
   setStatus("Saving…");
 
   try {
-  await postRow(payload);
+    await postRow(payload);
 
-  // also write daily averages (so the 7-day table has data)
-  const dailyPayload = {
-    type: "daily",
-    date,
-    sys_avg: sysAvg,
-    dia_avg: diaAvg,
-    pulse_avg: pulAvg,
-    notes: ""
-  };
-  await postRow(dailyPayload);
+    // also write daily averages so the 7-day table has data
+    const dailyPayload = {
+      type: "daily",
+      date,
+      sys_avg: sysAvg,
+      dia_avg: diaAvg,
+      pulse_avg: pulAvg,
+      notes: ""
+    };
+    await postRow(dailyPayload);
 
-  setStatus(`Saved (${MODE}) ✅`, "ok");
-  await refreshChart();
-} catch (e) {
+    setStatus(`Saved (${MODE}) ✅`, "ok");
+    await refreshTrendTable();
+  } catch (e) {
+    setStatus(`Save failed: ${e.message}`, "bad");
+  } finally {
+    saveBtn.disabled = false;
+    refreshBtn && (refreshBtn.disabled = false);
+  }
 });
 
-refreshBtn.addEventListener("click", refreshTrendTable);
+refreshBtn?.addEventListener("click", refreshTrendTable);
 
-modeMorningBtn.addEventListener("click", () => setMode("morning"));
-modeEveningBtn.addEventListener("click", () => setMode("evening"));
+modeMorningBtn?.addEventListener("click", () => setMode("morning"));
+modeEveningBtn?.addEventListener("click", () => setMode("evening"));
 
 // ---- init ----
 setMode("morning");
