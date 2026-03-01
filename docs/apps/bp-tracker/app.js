@@ -307,15 +307,22 @@ saveBtn.addEventListener("click", async () => {
   setStatus("Saving…");
 
   try {
-    await postRow(payload);
-    setStatus(`Saved (${MODE}) ✅`, "ok");
-    await refreshTrendTable();
-  } catch (e) {
-    setStatus(`Save failed: ${e.message}`, "bad");
-  } finally {
-    saveBtn.disabled = false;
-    refreshBtn.disabled = false;
-  }
+  await postRow(payload);
+
+  // also write daily averages (so the 7-day table has data)
+  const dailyPayload = {
+    type: "daily",
+    date,
+    sys_avg: sysAvg,
+    dia_avg: diaAvg,
+    pulse_avg: pulAvg,
+    notes: ""
+  };
+  await postRow(dailyPayload);
+
+  setStatus(`Saved (${MODE}) ✅`, "ok");
+  await refreshChart();
+} catch (e) {
 });
 
 refreshBtn.addEventListener("click", refreshTrendTable);
