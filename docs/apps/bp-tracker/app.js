@@ -25,8 +25,10 @@ const saveBtn = $("saveBtn");
 const refreshBtn = $("refreshBtn");
 const statusMsg = $("statusMsg");
 
-const canvas = $("chart");
-const ctx = canvas.getContext("2d");
+const trendBody = $("trendBody");
+const avg7SysEl = $("avg7Sys");
+const avg7DiaEl = $("avg7Dia");
+const avg7PulEl = $("avg7Pul");
 
 const modeMorningBtn = $("modeMorningBtn");
 const modeEveningBtn = $("modeEveningBtn");
@@ -177,127 +179,74 @@ function lastNDates(n) {
   return out;
 }
 
-function drawChart(points) {
-  const dpr = window.devicePixelRatio || 1;
-  const rect = canvas.getBoundingClientRect();
-  const w = Math.max(320, Math.floor(rect.width));
-  const h = Math.max(240, Math.floor(rect.width * 0.45));
-  canvas.width = Math.floor(w * dpr);
-  canvas.height = Math.floor(h * dpr);
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-  ctx.clearRect(0, 0, w, h);
-
-  const padL = 44, padR = 12, padT = 18, padB = 32;
-  const plotW = w - padL - padR;
-  const plotH = h - padT - padB;
-
-  const vals = [];
-  for (const p of points) {
-    if (Number.isFinite(p.sys)) vals.push(p.sys);
-    if (Number.isFinite(p.dia)) vals.push(p.dia);
-  }
-  const minV = vals.length ? Math.floor(Math.min(...vals) - 5) : 60;
-  const maxV = vals.length ? Math.ceil(Math.max(...vals) + 5) : 140;
-
-  function x(i) {
-    if (points.length <= 1) return padL;
-    return padL + (i / (points.length - 1)) * plotW;
-  }
-  function y(v) {
-    const t = (v - minV) / (maxV - minV || 1);
-    return padT + (1 - t) * plotH;
-  }
-
-  ctx.strokeStyle = "rgba(170,178,192,0.18)";
-  ctx.lineWidth = 1;
-  const gridCount = 4;
-  for (let i = 0; i <= gridCount; i++) {
-    const gy = padT + (i / gridCount) * plotH;
-    ctx.beginPath();
-    ctx.moveTo(padL, gy);
-    ctx.lineTo(padL + plotW, gy);
-    ctx.stroke();
-  }
-
-  ctx.fillStyle = "rgba(170,178,192,0.85)";
-  ctx.font = "12px system-ui, -apple-system, Segoe UI, Roboto, Arial";
-  ctx.textAlign = "right";
-  ctx.textBaseline = "middle";
-  for (let i = 0; i <= gridCount; i++) {
-    const v = Math.round(maxV - (i / gridCount) * (maxV - minV));
-    const gy = padT + (i / gridCount) * plotH;
-    ctx.fillText(String(v), padL - 8, gy);
-  }
-
-  ctx.textAlign = "center";
-  ctx.textBaseline = "top";
-  for (let i = 0; i < points.length; i++) {
-    const lab = points[i].label.slice(5);
-    ctx.fillText(lab, x(i), padT + plotH + 10);
-  }
-
-  function drawLine(key, stroke) {
-    ctx.strokeStyle = stroke;
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    let started = false;
-    for (let i = 0; i < points.length; i++) {
-      const v = points[i][key];
-      if (!Number.isFinite(v)) continue;
-      const px = x(i);
-      const py = y(v);
-      if (!started) { ctx.moveTo(px, py); started = true; }
-      else ctx.lineTo(px, py);
-    }
-    ctx.stroke();
-
-    ctx.fillStyle = stroke;
-    for (let i = 0; i < points.length; i++) {
-      const v = points[i][key];
-      if (!Number.isFinite(v)) continue;
-      ctx.beginPath();
-      ctx.arc(x(i), y(v), 3, 0, Math.PI * 2);
-      ctx.fill();
-    }
-  }
-
-  drawLine("sys", "rgba(96,165,250,0.95)");
-  drawLine("dia", "rgba(244,114,182,0.95)");
-
-  ctx.textAlign = "left";
-  ctx.textBaseline = "alphabetic";
-  ctx.fillStyle = "rgba(230,232,238,0.9)";
-  ctx.fillText("Systolic", padL, padT - 4);
-  ctx.fillStyle = "rgba(96,165,250,0.95)";
-  ctx.fillRect(padL - 16, padT - 14, 10, 10);
-
-  ctx.fillStyle = "rgba(230,232,238,0.9)";
-  ctx.fillText("Diastolic", padL + 110, padT - 4);
-  ctx.fillStyle = "rgba(244,114,182,0.95)";
-  ctx.fillRect(padL + 94, padT - 14, 10, 10);
+function fmt(v) {
+  return Number.isFinite(v) ? String(v) : "—";
 }
 
-async function refreshChart() {
-  setStatus("Loading chart…");
+function mean(arr) {
+  const xs = arr.filter((x) => Number.isFinite(x));
+  if (!xs.length) return null;
+  const s = xs.reduce((t, x) => t + x, 0);
+  return Math.round((s / xs.length) * 10) / 10;
+}
+
+async function refreshTrendTable() {
+  setStatus("Loading last 7 days…");
   try {
     const rows = await getRowsDaily(50);
-    const parsed = rows.map(parseRow).filter(Boolean);
+    const parsed = rows.map((r) => {
+      const date = String(r.date || "").trim();
+      const sys = Number(r.sys_avg);
+      const dia = Number(r.dia_avg);
+      const pul = Number(r.pulse_avg);
+      if (!date) return null;
+      return { date, sys, dia, pul };
+    }).filter(Boolean);
 
     const last7 = lastNDates(7);
 
+    // Latest entry per date
     const byDate = new Map();
     for (const r of parsed) byDate.set(r.date, r);
 
-    const points = last7.map((d) => {
-      const row = byDate.get(d);
-      return { label: d, sys: row ? row.sys : null, dia: row ? row.dia : null };
-    });
+    // Build table rows
+    trendBody.innerHTML = "";
+    const sysVals = [];
+    const diaVals = [];
+    const pulVals = [];
 
-    drawChart(points);
+    for (const d of last7) {
+      const r = byDate.get(d);
+      const sys = r ? r.sys : null;
+      const dia = r ? r.dia : null;
+      const pul = r ? r.pul : null;
+
+      if (Number.isFinite(sys)) sysVals.push(sys);
+      if (Number.isFinite(dia)) diaVals.push(dia);
+      if (Number.isFinite(pul)) pulVals.push(pul);
+
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${d}</td>
+        <td>${fmt(sys)}</td>
+        <td>${fmt(dia)}</td>
+        <td>${fmt(pul)}</td>
+      `;
+      trendBody.appendChild(tr);
+    }
+
+    const avgSys = mean(sysVals);
+    const avgDia = mean(diaVals);
+    const avgPul = mean(pulVals);
+
+    avg7SysEl.textContent = avgSys ?? "—";
+    avg7DiaEl.textContent = avgDia ?? "—";
+    avg7PulEl.textContent = avgPul ?? "—";
+
     setStatus("");
   } catch (e) {
-    setStatus(`Chart load failed: ${e.message}`, "bad");
+    setStatus(`Trend load failed: ${e.message}`, "bad");
   }
 }
 
@@ -360,7 +309,7 @@ saveBtn.addEventListener("click", async () => {
   try {
     await postRow(payload);
     setStatus(`Saved (${MODE}) ✅`, "ok");
-    await refreshChart();
+    await refreshTrendTable();
   } catch (e) {
     setStatus(`Save failed: ${e.message}`, "bad");
   } finally {
@@ -369,7 +318,7 @@ saveBtn.addEventListener("click", async () => {
   }
 });
 
-refreshBtn.addEventListener("click", refreshChart);
+refreshBtn.addEventListener("click", refreshTrendTable);
 
 modeMorningBtn.addEventListener("click", () => setMode("morning"));
 modeEveningBtn.addEventListener("click", () => setMode("evening"));
@@ -377,5 +326,5 @@ modeEveningBtn.addEventListener("click", () => setMode("evening"));
 // ---- init ----
 setMode("morning");
 computeAverages();
-refreshChart();
-window.addEventListener("resize", () => refreshChart());
+refreshTrendTable();
+window.addEventListener("resize", () => refreshTrendTable());

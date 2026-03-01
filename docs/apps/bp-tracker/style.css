@@ -192,3 +192,53 @@ canvas{
   .buttons{ grid-template-columns:1fr; }
   .card-head{ flex-direction:column; align-items:flex-start; }
 }
+
+.tableWrap{
+  overflow-x:auto;
+}
+
+.trendTable{
+  width:100%;
+  border-collapse:separate;
+  border-spacing:0;
+  background:#0e1420;
+  border:1px solid var(--border);
+  border-radius:12px;
+  overflow:hidden;
+}
+
+.trendTable th,
+.trendTable td{
+  padding:10px 12px;
+  border-bottom:1px solid var(--border);
+  font-size:14px;
+}
+
+.trendTable th{
+  text-align:left;
+  color:var(--muted);
+  font-weight:600;
+  background:rgba(255,255,255,0.02);
+}
+
+.trendTable td{
+  color:var(--text);
+}
+
+.trendTable td:nth-child(2),
+.trendTable td:nth-child(3),
+.trendTable td:nth-child(4){
+  text-align:right;
+  font-variant-numeric: tabular-nums;
+}
+
+.trendTable tbody tr:last-child td{
+  border-bottom:none;
+}
+
+.summaryRow td{
+  border-top:1px solid var(--border);
+  border-bottom:none;
+  font-weight:700;
+  background:rgba(34,197,94,0.06);
+}

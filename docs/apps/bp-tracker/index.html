@@ -66,10 +66,31 @@
       <p id="statusMsg" class="hint"></p>
     </section>
 
-    <section class="card">
-      <h2>Weekly Trend (Last 7 Days)</h2>
-      <canvas id="chart" width="800" height="350"></canvas>
-    </section>
+<section class="card">
+  <h2>Last 7 Days (Daily Averages)</h2>
+
+  <div class="tableWrap">
+    <table class="trendTable">
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Sys avg</th>
+          <th>Dia avg</th>
+          <th>Pulse avg</th>
+        </tr>
+      </thead>
+      <tbody id="trendBody"></tbody>
+      <tfoot>
+        <tr class="summaryRow">
+          <td>7-day average</td>
+          <td id="avg7Sys">—</td>
+          <td id="avg7Dia">—</td>
+          <td id="avg7Pul">—</td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+</section>
   </main>
 
   <script src="./app.js"></script>
