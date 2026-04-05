@@ -89,8 +89,17 @@
       <h2 id="exerciseName">Wall Sit</h2>
       <div class="phase-label" id="phaseLabel">HOLD</div>
 
-      <div class="main-timer" id="mainTimer">
-        00:00
+      <!-- Progress wheel + timer -->
+      <div class="wheel-wrap">
+        <svg class="wheel" viewBox="0 0 120 120" aria-hidden="true">
+          <circle cx="60" cy="60" r="54" class="track"></circle>
+          <circle cx="60" cy="60" r="54" class="arc" id="progressArc"
+                  stroke-dasharray="339.292" stroke-dashoffset="339.292"></circle>
+        </svg>
+        <div class="timer-center">
+          <div id="prepOverlay" class="prep-count hidden"></div>
+          <div class="main-timer" id="mainTimer">00:00</div>
+        </div>
       </div>
 
       <div class="breathing-hint">
@@ -111,7 +120,7 @@
         <ul id="exerciseList">
           <li>Wall Sit</li>
           <li>Handgrip Hold</li>
-          <li>Plank</li>
+          <li>Forearm Plank</li>
           <li>Split Squat (Left)</li>
           <li>Split Squat (Right)</li>
           <li>Glute Bridge</li>
