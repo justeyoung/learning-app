@@ -45,6 +45,14 @@ function formatDate(date) {
   });
 }
 
+// --- STATUS LOGIC ---
+
+function getStatus(timePct, totalPct) {
+  if (totalPct > timePct) return "AHEAD OF RUNWAY";
+  if (totalPct < timePct) return "BEHIND RUNWAY";
+  return "ON TRACK";
+}
+
 // --- Main App ---
 
 fetch('./data/runway.json')
@@ -65,6 +73,8 @@ fetch('./data/runway.json')
     const totalPct = getPercentage(total, totalTarget);
     const timePct = getTimeProgress(data.start_date, data.end_date);
 
+    const status = getStatus(timePct, totalPct);
+
     const { elapsedDays, totalDays, remainingDays, startDate, endDate } =
       getDayProgress(data.start_date, data.end_date);
 
@@ -73,6 +83,8 @@ fetch('./data/runway.json')
     const output = 
 `THE RUNWAY
 ----------------------------------
+
+STATUS: ${status}
 
 Start:     ${formatDate(startDate)}
 Today:     Day ${elapsedDays} / ${totalDays}
